@@ -1,4 +1,8 @@
 close all;
+rng('default')
+
+addpath('model')
+addpath('viz')
 
 %% Simulation parameters
 global T progress;

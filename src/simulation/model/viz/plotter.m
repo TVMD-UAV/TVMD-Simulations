@@ -1,5 +1,5 @@
 function plotter(t, r, dydt, y, inputs, outputs, refs)
-    projectpath = 'H:\\.shortcut-targets-by-id\\1_tImZc764OguGZ7irM7kqDx9_f6Tdqwi\\National Taiwan University\\Research\\Multidrone\\VTswarm\\src\\simulation\\model\\0606_birotor\\model_verification\\';
+    projectpath = 'H:\\.shortcut-targets-by-id\\1_tImZc764OguGZ7irM7kqDx9_f6Tdqwi\\National Taiwan University\\Research\\Multidrone\\VTswarm\\src\\simulation\\model\\outputs\\0606_birotor\\model_verification\\';
     foldername = 'test\\';
     filename = 'birotor_veri';
     rotation_matrix=true;
