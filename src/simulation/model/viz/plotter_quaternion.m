@@ -1,8 +1,7 @@
-function plotter(t, r, dydt, y, inputs, outputs, refs)
-    projectpath = 'H:\\.shortcut-targets-by-id\\1_tImZc764OguGZ7irM7kqDx9_f6Tdqwi\\National Taiwan University\\Research\\Multidrone\\VTswarm\\src\\simulation\\model\\outputs\\0606_birotor\\model_verification\\';
+function plotter_quaternion(t, r, dydt, y, inputs, outputs)    
+    projectpath = 'H:\\.shortcut-targets-by-id\\1_tImZc764OguGZ7irM7kqDx9_f6Tdqwi\\National Taiwan University\\Courses\\110-2\\AdaptiveControl\\FinalProject\\Simulations\\DisturbanceFree\\';
     foldername = 'test\\';
-    filename = 'birotor_veri';
-    rotation_matrix=true;
+    filename = 'PositionRegulation';
 
     %% Marker style
     makerstyle = false;
@@ -17,50 +16,38 @@ function plotter(t, r, dydt, y, inputs, outputs, refs)
     %% Extract parameters
     Tf = inputs(:, 1);
     u = inputs(:, 2:4);
-    w_m1 = inputs(:, 5);
-    w_m2 = inputs(:, 6);
-    xi_d = inputs(:, 7);
-    eta_d = inputs(:, 8);
-
-    % States
-    dW = dydt(:, 1:3);
-    W = y(:, 1:3);        % Angular velocity
-    % Translational
-    ddP = dydt(:, 13:15);
-    dP = y(:, 13:15);
-    P = y(:, 16:18);
-    xi = y(:, 19);
-    eta = y(:, 20);
 
     thrust = outputs(:, 1:3);
-    B_M_f = outputs(:, 4:6);
-    B_M_d = outputs(:, 7:9);
-    B_M_a = outputs(:, 10:12);
-    B_M_g = outputs(:, 13:15);
-    traj = reshape(refs(:, 1:12), [length(y), 3, 4]);
+    B_M = outputs(:, 4:6);
+    traj = reshape(outputs(:, 7:18), [length(outputs), 3, 4]);
     traj = permute(traj, [1, 3, 2]);
-    Q_d = refs(:, 13:15);
-    beta = refs(:, 16:18);
-    %tilde_mu = outputs(:, 26:28);
-    tilde_mu = zeros([length(y) 3]);
+    Q_d = outputs(:, 19:22);
+    beta = outputs(:, 23:25);
+    tilde_mu = outputs(:, 26:28);
+    theta_a = outputs(:, 29:31);
+    theta_b = outputs(:, 32:34);
+
+    theta1 = y(:, 14:16);
+    theta2 = y(:, 17:19);
+    theta3 = y(:, 20:22);
     detailed = true;
 
     % Rotational
-    if rotation_matrix == true
-        % Rotation matrix
-        R = reshape(y(:, 4:12), [length(y) 3 3]); % 3x3
-        eulZXY = rot2zxy(R);
-        attitude_d = Q_d(:, 1:3);
-    else
-        % Quaternion
-        R = zeros([length(y) 3 3]);
-        Qs = y(:, 4:7);       % Orientation
-        eulZXY = Qs(:, 2:4);  % Euler angles
-        for i=1:length(Qs)
-            R(i, :, :) = Q2R(Qs(i, :));
-        end
-        attitude_d = Q_d(:, 1:3);
+    dW = dydt(:, 1:3);
+    W = y(:, 1:3);        % Angular velocity
+    Qs = y(:, 4:7);       % Orientation
+    eulZXY = Qs(:, 2:4);  % Euler angles
+    attitude_d = Q_d(:, 2:4);
+    R = zeros([length(Qs) 3 3]);
+    for i=1:length(Qs)
+        R(i, :, :) = Q2R(Qs(i, :));
     end
+    
+    % Translational
+    ddP = dydt(:, 8:10);
+    dP = y(:, 8:10);
+    P = y(:, 11:13);
+
     CoP = P(:, 1:3);
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -95,13 +82,13 @@ function plotter(t, r, dydt, y, inputs, outputs, refs)
     saveas(gcf, strcat(projectpath, foldername, filename, '_3d.png'));
     saveas(gcf, strcat(projectpath, foldername, filename, '_3d.svg'));
     saveas(gcf, strcat(projectpath, foldername, filename, '_3d.fig'));
-    
+   
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %% Draw states
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %% Draw orientation
-    figure('Position', [10 10 800 1000])
-    Ax = subplot(5, 1, 1);
+    figure('Position', [10 10 800 800])
+    Ax = subplot(4, 1, 1);
     plot(t, eulZXY(:, 1),'DisplayName','Yaw $$\psi$$','LineWidth',2, 'LineStyle','-', 'Color', '#0072BD'); hold on 
     plot(t, eulZXY(:, 2),'DisplayName','Roll $$\phi$$','LineWidth',2, 'LineStyle','-', 'Color', '#D95319'); hold on 
     plot(t, eulZXY(:, 3),'DisplayName','Pitch $$\theta$$','LineWidth',2, 'LineStyle','-', 'Color', '#EDB120'); hold on 
@@ -113,16 +100,16 @@ function plotter(t, r, dydt, y, inputs, outputs, refs)
     end
     ylabel('rad')
     xlabel('time')
-    %ylim([-0.5 0.5])
+    ylim([-0.5 0.5])
     title('Orientation')
     hl = legend('show');
     set(hl, 'Interpreter','latex')
     %% Draw angular velocity
     %figure('Position', [10 10 800 400])
-    Ax = subplot(5, 1, 2);
-    plot(t, W(:, 3),'DisplayName','Yaw $$\omega_z$$','LineWidth',2); hold on 
-    plot(t, W(:, 2),'DisplayName','Roll $$\omega_y$$','LineWidth',2); hold on 
+    Ax = subplot(4, 1, 2);
     plot(t, W(:, 1),'DisplayName','Pitch $$\omega_x$$','LineWidth',2); hold on 
+    plot(t, W(:, 2),'DisplayName','Roll $$\omega_y$$','LineWidth',2); hold on 
+    plot(t, W(:, 3),'DisplayName','Yaw $$\omega_z$$','LineWidth',2); hold on 
     if detailed
         plot(t, beta(:, 1),'DisplayName','Yaw $${\omega_x}_d$$','LineWidth',2, 'Color', '#0072BD', 'LineStyle',lineStyle, 'Marker',markerStyle, 'MarkerSize', 3); hold on 
         plot(t, beta(:, 2),'DisplayName','Roll $${\omega_y}_d$$','LineWidth',2, 'Color', '#D95319', 'LineStyle',lineStyle, 'Marker',markerStyle, 'MarkerSize', 3); hold on 
@@ -130,12 +117,12 @@ function plotter(t, r, dydt, y, inputs, outputs, refs)
     end
     ylabel('rad')
     xlabel('time')
-    %ylim([-2 2])
+    ylim([-2 2])
     title('Angular velocity w.r.t. body frame')
     hl = legend('show');
     set(hl, 'Interpreter','latex')
     %% Draw positions
-    Ax = subplot(5, 1, 3);
+    Ax = subplot(4, 1, 3);
     plot(t, P(:, 1),'DisplayName','$$P_x$$','LineWidth',2, 'LineStyle','-', 'Color', '#0072BD'); hold on 
     plot(t, P(:, 2),'DisplayName','$$P_y$$','LineWidth',2, 'LineStyle','-', 'Color', '#D95319'); hold on 
     plot(t, P(:, 3),'DisplayName','$$P_z$$','LineWidth',2, 'LineStyle','-', 'Color', '#EDB120'); hold on 
@@ -153,7 +140,7 @@ function plotter(t, r, dydt, y, inputs, outputs, refs)
     hl = legend('show');
     set(hl, 'Interpreter','latex')  
     %% Draw velocity
-    Ax = subplot(5, 1, 4);
+    Ax = subplot(4, 1, 4);
     plot(t, dP(:, 1),'DisplayName','$$V_x$$','LineWidth',2, 'LineStyle','-', 'Color', '#0072BD'); hold on 
     plot(t, dP(:, 2),'DisplayName','$$V_y$$','LineWidth',2, 'LineStyle','-', 'Color', '#D95319'); hold on 
     plot(t, dP(:, 3),'DisplayName','$$V_z$$','LineWidth',2, 'LineStyle','-', 'Color', '#EDB120'); hold on 
@@ -166,19 +153,8 @@ function plotter(t, r, dydt, y, inputs, outputs, refs)
     end
     ylabel('m/s')
     xlabel('time')
-    %ylim([-10 10])
+    ylim([-10 10])
     title('Velocity w.r.t. inertial frame')
-    hl = legend('show');
-    set(hl, 'Interpreter','latex')
-    %% Draw acceleration
-    Ax = subplot(5, 1, 5);
-    plot(t, ddP(:, 1),'DisplayName','$$a_x$$','LineWidth',2, 'LineStyle','-', 'Color', '#0072BD'); hold on 
-    plot(t, ddP(:, 2),'DisplayName','$$a_y$$','LineWidth',2, 'LineStyle','-', 'Color', '#D95319'); hold on 
-    plot(t, ddP(:, 3),'DisplayName','$$a_z$$','LineWidth',2, 'LineStyle','-', 'Color', '#EDB120'); hold on 
-    ylabel('m/s^2')
-    xlabel('time')
-    %ylim([-2 2])
-    title('Acceleration w.r.t. inertial frame')
     hl = legend('show');
     set(hl, 'Interpreter','latex')
 
@@ -187,9 +163,9 @@ function plotter(t, r, dydt, y, inputs, outputs, refs)
     saveas(gcf, strcat(projectpath, foldername, filename, '_state.fig'));
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-
     %% Draw errors
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
     %% Draw orientation
     figure('Position', [10 10 800 1000])
     Ax = subplot(5, 1, 1);
@@ -198,7 +174,7 @@ function plotter(t, r, dydt, y, inputs, outputs, refs)
     plot(t, attitude_d(:, 3) - eulZXY(:, 3),'DisplayName','Pitch $$\theta$$','LineWidth',2, 'LineStyle','-', 'Color', '#EDB120'); hold on 
     ylabel('rad')
     xlabel('time')
-    %ylim([-0.1 0.1])
+    ylim([-0.1 0.1])
     title('Orientation')
     hl = legend('show');
     set(hl, 'Interpreter','latex')
@@ -209,7 +185,7 @@ function plotter(t, r, dydt, y, inputs, outputs, refs)
     plot(t, W(:, 3) - beta(:, 3),'DisplayName','Pitch $$\omega_z$$','LineWidth',2, 'LineStyle','-', 'Color', '#EDB120'); hold on 
     ylabel('rad/s')
     xlabel('time')
-    %ylim([-0.2 0.2])
+    ylim([-0.2 0.2])
     title('Angular velocity')
     hl = legend('show');
     set(hl, 'Interpreter','latex')
@@ -230,7 +206,7 @@ function plotter(t, r, dydt, y, inputs, outputs, refs)
     plot(t, traj(:, 3, 2) - dP(:, 3),'DisplayName','$$V_z$$','LineWidth',2, 'LineStyle','-', 'Color', '#EDB120'); hold on 
     ylabel('m/s')
     xlabel('time')
-    %ylim([-10 10])
+    ylim([-10 10])
     title('Velocity w.r.t. inertial frame')
     hl = legend('show');
     set(hl, 'Interpreter','latex')
@@ -242,7 +218,7 @@ function plotter(t, r, dydt, y, inputs, outputs, refs)
     plot(t, tilde_mu(:, 3),'DisplayName','$$\mu_z$$','LineWidth',2, 'LineStyle','-', 'Color', '#EDB120'); hold on 
     ylabel('m/s^2')
     xlabel('time')
-    %ylim([-2 2])
+    ylim([-2 2])
     title('Acceleration w.r.t. inertial frame')
     hl = legend('show');
     set(hl, 'Interpreter','latex')
@@ -250,9 +226,8 @@ function plotter(t, r, dydt, y, inputs, outputs, refs)
     saveas(gcf, strcat(projectpath, foldername, filename, '_error.svg'));
     saveas(gcf, strcat(projectpath, foldername, filename, '_error.fig'));
     
-    %% Draw inputs
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %% Draw inputs
+    %% Draw torque
     figure(6)
     yyaxis left
     plot(t, u(:, 1), 'LineStyle','-', 'DisplayName','u_x', 'Color', '#0072BD','LineWidth',2); hold on 
@@ -268,79 +243,63 @@ function plotter(t, r, dydt, y, inputs, outputs, refs)
     ylim([8 16])
     title('Command profile')
     legend()
-    saveas(gcf, strcat(projectpath, foldername, filename, '_intpus.svg'));
-    saveas(gcf, strcat(projectpath, foldername, filename, '_intpus.fig'));
-
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %% Draw torque
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    figure(7)
-    plot(t, B_M_f(:, 1),  'r^','DisplayName','M_f: x'); hold on 
-    plot(t, B_M_f(:, 2),  'r-','DisplayName','M_f: y'); hold on 
-    plot(t, B_M_f(:, 3),  'r+','DisplayName','M_f: z'); hold on  
-    plot(t, B_M_d(:, 1), 'g^','DisplayName','M_d: x'); hold on 
-    plot(t, B_M_d(:, 2), 'g-','DisplayName','M_d: y'); hold on 
-    plot(t, B_M_d(:, 3), 'g+','DisplayName','M_d: z'); hold on
-    plot(t, B_M_g(:, 1), 'b^','DisplayName','M_g: x'); hold on 
-    plot(t, B_M_g(:, 2), 'b-','DisplayName','M_g: y'); hold on 
-    plot(t, B_M_g(:, 3), 'b+','DisplayName','M_g: z'); hold on
-    plot(t, B_M_a(:, 1), 'c^','DisplayName','M_a: x'); hold on 
-    plot(t, B_M_a(:, 2), 'c-','DisplayName','M_a: y'); hold on 
-    plot(t, B_M_a(:, 3), 'c+','DisplayName','M_a: z'); hold on
-    ylabel('Nm')
-    xlabel('time')
-    title('Torque profile')
-    legend()
-    saveas(gcf, strcat(projectpath, foldername, filename, '_torque.svg'));
-    saveas(gcf, strcat(projectpath, foldername, filename, '_torque.fig'));
-
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    %% Draw commands
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
-    figure(8)
-    Ax = subplot(2, 1, 1);
-    plot(t, w_m1,'DisplayName','$$w_{m1}$$','LineWidth',2, 'LineStyle','-', 'Color', '#0072BD'); hold on 
-    plot(t, w_m2,'DisplayName','$$w_{m2}$$','LineWidth',2, 'LineStyle','-', 'Color', '#D95319'); hold on 
-    ylabel('rot/s')
-    xlabel('time')
-    title('Propeller speed')
-    hl = legend('show');
-    set(hl, 'Interpreter','latex')
-    legend()
-
-    Ax = subplot(2, 1, 2);
-    plot(t, xi,'DisplayName','$$\xi$$','LineWidth',2, 'LineStyle','-', 'Color', '#0072BD'); hold on 
-    plot(t, eta,'DisplayName','$$\eta$$','LineWidth',2, 'LineStyle','-', 'Color', '#D95319'); hold on 
-    plot(t, xi_d,'DisplayName','$$\xi_d$$','LineWidth',2, 'LineStyle','--', 'Color', '#0072BD'); hold on 
-    plot(t, eta_d,'DisplayName','$$\eta_d$$','LineWidth',2, 'LineStyle','--', 'Color', '#D95319'); hold on 
-    ylabel('rad')
-    xlabel('time')
-    title('Servo angle')
-    hl = legend('show');
-    set(hl, 'Interpreter','latex')
-    legend()
-
-    sgtitle('Command profile')
     saveas(gcf, strcat(projectpath, foldername, filename, '_command.svg'));
     saveas(gcf, strcat(projectpath, foldername, filename, '_command.fig'));
 
-    %% Draw animation
-    %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+    %% Draw estimation
+    figure(7)
+    Ax = subplot(3, 1, 1);
+    plot(t, theta1(:, 1), 'LineStyle','-', 'DisplayName','$$\hat{\theta}_{1,x}$$', 'Color', '#0072BD','LineWidth',2); hold on 
+    plot(t, theta1(:, 2), 'LineStyle','-', 'DisplayName','$$\hat{\theta}_{1,y}$$', 'Color', '#D95319','LineWidth',2); hold on
+    plot(t, theta1(:, 3), 'LineStyle','-', 'DisplayName','$$\hat{\theta}_{1,z}$$', 'Color', '#EDB120','LineWidth',2); hold on
+    
+    plot(t, theta_a(:, 1), 'LineStyle','--', 'DisplayName','$$\theta_{a,x}$$', 'Color', '#0072BD','LineWidth',2); hold on 
+    plot(t, theta_a(:, 2), 'LineStyle','--', 'DisplayName','$$\theta_{a,y}$$', 'Color', '#D95319','LineWidth',2); hold on
+    plot(t, theta_a(:, 3), 'LineStyle','--', 'DisplayName','$$\theta_{a,z}$$', 'Color', '#EDB120','LineWidth',2); hold on
+    ylabel('N')
+    xlabel('time')
+    hl = legend('show');
+    set(hl, 'Interpreter','latex')
+    title('\theta_1 estimation');
+    
+    Ax = subplot(3, 1, 2);
+    plot(t, theta2(:, 1), 'LineStyle','-', 'DisplayName','$$\hat{\theta}_{2,x}$$', 'Color', '#0072BD','LineWidth',2); hold on 
+    plot(t, theta2(:, 2), 'LineStyle','-', 'DisplayName','$$\hat{\theta}_{2,y}$$', 'Color', '#D95319','LineWidth',2); hold on
+    plot(t, theta2(:, 3), 'LineStyle','-', 'DisplayName','$$\hat{\theta}_{2,z}$$', 'Color', '#EDB120','LineWidth',2); hold on
+    
+    plot(t, theta_a(:, 1), 'LineStyle','--', 'DisplayName','$$\theta_{a,x}$$', 'Color', '#0072BD','LineWidth',2); hold on 
+    plot(t, theta_a(:, 2), 'LineStyle','--', 'DisplayName','$$\theta_{a,y}$$', 'Color', '#D95319','LineWidth',2); hold on
+    plot(t, theta_a(:, 3), 'LineStyle','--', 'DisplayName','$$\theta_{a,z}$$', 'Color', '#EDB120','LineWidth',2); hold on
+    ylabel('N')
+    xlabel('time')
+    hl = legend('show');
+    set(hl, 'Interpreter','latex')
+    title('\theta_2 estimation');
+    
+    Ax = subplot(3, 1, 3);
+    plot(t, theta3(:, 1), 'LineStyle','-', 'DisplayName','$$\hat{\theta}_{3,x}$$', 'Color', '#0072BD','LineWidth',2); hold on 
+    plot(t, theta3(:, 2), 'LineStyle','-', 'DisplayName','$$\hat{\theta}_{3,y}$$', 'Color', '#D95319','LineWidth',2); hold on
+    plot(t, theta3(:, 3), 'LineStyle','-', 'DisplayName','$$\hat{\theta}_{3,z}$$', 'Color', '#EDB120','LineWidth',2); hold on
+    
+    plot(t, theta_b(:, 1), 'LineStyle','--', 'DisplayName','$$\theta_{b,x}$$', 'Color', '#0072BD','LineWidth',2); hold on 
+    plot(t, theta_b(:, 2), 'LineStyle','--', 'DisplayName','$$\theta_{b,y}$$', 'Color', '#D95319','LineWidth',2); hold on
+    plot(t, theta_b(:, 3), 'LineStyle','--', 'DisplayName','$$\theta_{b,z}$$', 'Color', '#EDB120','LineWidth',2); hold on
+    ylabel('N')
+    xlabel('time')
+    hl = legend('show');
+    set(hl, 'Interpreter','latex')
+    title('\theta_3 estimation');
+    sgtitle('Estimation profile')
+    saveas(gcf, strcat(projectpath, foldername, filename, '_estimation.svg'));
+    saveas(gcf, strcat(projectpath, foldername, filename, '_estimation.fig'));
+
     %% Draw animation
     figure('Position', [10 10 1200 1200])
     set(gca,'DataAspectRatio',[1 1 1])
     animation_name = strcat(projectpath, foldername, filename, '_3d.gif');
 
     scatter3(P(:, 1), P(:, 2), P(:, 3), 'Color', 'none'); hold on
-    padding = 1;
-    xxx = [min(P(:, 1))-padding max(P(:, 1))+padding];
-    yyy = [min(P(:, 2))-padding max(P(:, 2))+padding];
-    zzz = [min(P(:, 3))-padding max(P(:, 3))+padding];
-    [XXX, YYY, ZZZ] = meshgrid(xxx, yyy, zzz);
-    XXX = reshape(XXX, [8 1]);
-    YYY = reshape(YYY, [8 1]);
-    ZZZ = reshape(ZZZ, [8 1]);
-    scatter3(XXX, YYY, ZZZ, 'Color', 'none'); hold on
+    scatter3([0 max(P(:, 1))+2], [0 max(P(:, 2))+2], [0 max(P(:, 3))+2], 'Color', 'none'); hold on
     ss_traj = scatter3(traj(1, 1, 1), traj(1, 2, 1), traj(1, 3, 1), "red", 'Marker','.'); hold on
     ss_state = scatter3(P(1, 1), P(1, 2), P(1, 3), "blue"); hold on
     patch_obj = draw_agent_quad(P(r(1), :), R(r(1), :, :), 1+256*t(r(1))/t(end)); hold on

@@ -3,6 +3,7 @@ rng('default')
 
 addpath('model')
 addpath('viz')
+addpath('helper_functions')
 
 %% Simulation parameters
 global T progress;
@@ -355,39 +356,4 @@ function [Tf, Td, alpha, attitude_d] = ControllerSinsoid(t, params, traj, p, v, 
     alpha = amp * [cos(w0*t); sin(w0*t)];
     %           psi, phi, theta
     attitude_d = [0, 0, 0];
-end
-
-%% Mathematical helper functions
-function r = Rx(t)
-    r = [1 0      0;
-         0 cos(t) -sin(t);
-         0 sin(t) cos(t)];
-end
-
-function r = Rz(t)
-    r = [cos(t)  -sin(t) 0;
-         sin(t) cos(t)  0;
-         0       0       1];
-end
-
-function r = Ry(t)
-    r = [cos(t)  0 sin(t);
-         0       1 0; 
-         -sin(t) 0 cos(t)];
-end
-
-function X = skew(x)
-    X=[0 -x(3) x(2) ; x(3) 0 -x(1) ; -x(2) x(1) 0 ];
-end
-
-function I_R_B = getI_R_B(psi, phi, theta)
-    I_R_B = Rz(psi) * Rx(phi) * Ry(theta);
-end
-
-function eulers = rot2zxy(R)
-    %phi = asin(R(:, 3, 2)); 
-    psi = atan2(-R(1, 2), R(2, 2));    
-    phi = atan2(R(3, 2), sqrt(1-R(3, 2).^2));
-    theta = atan2(-R(3, 1), R(3, 3));
-    eulers = [psi, phi, theta];
 end
