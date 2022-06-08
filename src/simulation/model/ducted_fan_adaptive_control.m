@@ -9,7 +9,7 @@ parameter_chack(params);
 
 %% Simulation parameters
 global ts desire T progress;
-T = 150;
+T = 120;
 progress = 0;
 
 % Initial conditions
@@ -17,7 +17,8 @@ y0 = zeros([13+9 1]);
 %Q2 = theta_vector2Q(pi, [1;0;0]);
 y0(4:7) = [0; 1; 0; 0]; % Initial orientation
 %y0(4:7) = Q2;
-y0(11:13) = [-20 -10 -20];    % Initial position
+%y0(11:13) = [-20 -10 -20];    % Initial position
+y0(11:13) = [50 10 0];    % Initial position
 %y0(11:13) = [0 0 0];    % Initial position
 y0(8:10) = [0 0 0];    % Initial velocity
 
@@ -62,7 +63,7 @@ function [dydt, inputs, outputs] = drone_fly(t, y)
 
     %% Controller
     traj = TrajectoryPlanner(t);
-    %traj = zeros([4, 3]);
+    %traj = zeros([4, 5]);
     [Tf, u, attitude_d, beta, tilde_mu, adaptive] = Controller(t, params, traj, y);
     us = [Tf; u];
     [dydt_m, commands, meta] = ducted_fan_model(params, us, y);
@@ -239,17 +240,10 @@ end
 function [dydt, commands, meta] = ducted_fan_model(params, u, y)
     %% Parameters
     g = params('g');     % gravity
-    rho = params('rho');
     % Drone parameters
     m = params('m');   % Mass, Kg
     l = params('l');   % m
     I_b  = params('I_b');  % Actuator Inertial
-
-    v_w = params('v_w');
-    C_d = params('C_d');
-    I_xy = params('I_xy');
-    A_cs = params('A_cs');
-    esp_M = params('esp_M');
 
     %% State variables
     W = y(1:3);
@@ -260,13 +254,10 @@ function [dydt, commands, meta] = ducted_fan_model(params, u, y)
     R = Q2R(Q);
 
     %% Aerial Dynamics
-    F_drag = norm(v_w - dP)*R*C_d*R'*(v_w - dP);
-    F_ram = sqrt(u(1)*rho*A_cs/2)*R*I_xy*R'*(v_w - dP);
-    F_d = F_drag + F_ram;
+    [F_d, M_d] = aerial_drag(params, u, y);
 
     %% Newton-Euler equation
     I_thrust = -R * [0; 0; u(1)];
-    M_d = esp_M*skew([0;0;1])*R'*F_d;
     B_M = -cross(W, I_b * W) + u(2:4) + M_d;
 
     ddP = [0; 0; g] + I_thrust - R*skew([0;0;1])*u(2:4)/(m*l) + F_d/m;
@@ -277,6 +268,28 @@ function [dydt, commands, meta] = ducted_fan_model(params, u, y)
     dydt = [dW; dQ; ddP; dP];
     commands = [0; 0; 0; 0];
     meta = [u(2:4); F_d/m; M_d; [0;0;0]];
+end
+
+function [F_d, M_d] = aerial_drag(params, u, y)
+    % Drone parameters
+    rho = params('rho');
+    v_w = params('v_w');
+    C_d = params('C_d');
+    I_xy = params('I_xy');
+    A_cs = params('A_cs');
+    esp_M = params('esp_M');
+
+    %% State variables
+    Q = y(4:7);
+    dP = y(8:10);
+
+    R = Q2R(Q);
+
+    %% Aerial Dynamics
+    F_drag = norm(v_w - dP)*R*C_d*R'*(v_w - dP);
+    F_ram = sqrt(u(1)*rho*A_cs/2)*R*I_xy*R'*(v_w - dP);
+    F_d = F_drag + F_ram;
+    M_d = esp_M*skew([0;0;1])*R'*F_d;
 end
 
 %% Controller helper functions
