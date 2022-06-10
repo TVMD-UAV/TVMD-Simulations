@@ -62,7 +62,11 @@ fprintf("] \n");
 %% Plot
 r = 1:40:length(y);
 %r = 1:4:length(y);
-plotter(t, r, dydt, y, inputs, outputs, refs);
+projectpath = 'H:\\.shortcut-targets-by-id\\1_tImZc764OguGZ7irM7kqDx9_f6Tdqwi\\National Taiwan University\\Research\\Multidrone\\VTswarm\\src\\simulation\\model\\outputs\\0606_birotor\\model_verification\\';
+foldername = 'test\\';
+filename = 'birotor_veri';
+plotter(t, r, dydt, y, inputs, outputs, refs, ...
+    projectpath, foldername, filename);
 
 %% Functions
 function [dydt, inputs, outputs, refs] = drone_fly(t, y)

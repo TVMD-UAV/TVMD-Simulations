@@ -2,3 +2,4 @@
 
 # Matlab
 **/*.asv
+/src/simulation/model/outputs

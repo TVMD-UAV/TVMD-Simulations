@@ -52,7 +52,8 @@ fprintf("] \n");
 %% Plot
 r = 1:40:length(y);
 %r = 1:4:length(y);
-plotter_quaternion(t, r, dydt, y, inputs, outputs);
+plotter_quaternion(t, r, dydt, y, inputs, outputs, ...
+    projectpath, foldername, filename);
 
 %% Functions
 function [dydt, inputs, outputs] = drone_fly(t, y)

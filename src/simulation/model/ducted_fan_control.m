@@ -46,9 +46,13 @@ end
 fprintf("] \n");
 
 %% Plot
+projectpath = 'H:\\.shortcut-targets-by-id\\1_tImZc764OguGZ7irM7kqDx9_f6Tdqwi\\National Taiwan University\\Courses\\110-2\\AdaptiveControl\\FinalProject\\Simulations\\';
+foldername = 'test\\';
+filename = 'PositionRegulation';
 r = 1:40:length(y);
 %r = 1:4:length(y);
-plotter_quaternion(t, r, dydt, [y zeros([length(y) 9])], inputs, outputs);
+plotter_quaternion(t, r, dydt, [y zeros([length(y) 9])], inputs, outputs, ...
+    projectpath, foldername, filename);
 
 %% Functions
 function [dydt, inputs, outputs] = drone_fly(t, y)
