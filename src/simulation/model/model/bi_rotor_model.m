@@ -36,6 +36,8 @@ function [dydt, commands, meta] = bi_rotor_model(u, y)
 
     %% Forces and moments
     thrust = Ry(alpha1) * [0;0;P1] + Ry(alpha2) * [0;0;P2];
+    w_m1 = w_m(1);
+    w_m2 = w_m(2);
     M_gyro = I_r * [-w_m1*d_alpha1*cos(alpha1)+w_m2*d_alpha2*cos(alpha2); 0; 
                     w_m1*d_alpha1*sin(alpha1)-w_m2*d_alpha2*sin(alpha2)];
     M_drag = [-(Td1*sin(alpha1)-Td2*sin(alpha2)); 0; 
@@ -46,7 +48,7 @@ function [dydt, commands, meta] = bi_rotor_model(u, y)
     M_react = - I_a * (dd_alpha1 + dd_alpha2) * [0;1;0];
 
     %% Newton-Euler equation
-    B_M = -cross(W, I_b * W) + M_thrust + M_drag - M_react - M_gyro + torque_noise;
+    B_M = -cross(W, I_b * W) + M_thrust + M_drag - M_react - M_gyro;
     %B_M = -cross(W, I_b * W) + M_thrust;
 
     dW = I_b \ B_M;
