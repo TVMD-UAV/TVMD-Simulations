@@ -1,13 +1,6 @@
 function [dydt, commands, meta] = bi_rotor_model(u, y)
     [key, params] = get_birotor_params();
     g = params('g');   % g
-    rho = params('rho');   % kg/m3
-    prop_d = params('prop_d'); % 8 inch = 20.3 cm
-
-    CT_u = params('CT_u'); % upper propeller thrust coefficient
-    CT_l = params('CT_l'); % lower propeller thrust coefficient
-    CP_u = params('CP_u');   % upper propeller drag coefficient
-    CP_l = params('CP_l');   % lower propeller drag coefficient
 
     I_b = params('I_b');
     I_a = params('I_a');
@@ -25,6 +18,59 @@ function [dydt, commands, meta] = bi_rotor_model(u, y)
     dP = y(13:15);
     P = y(16:18);
     vartheta = y(19:22);
+
+    %% Control allocation
+    [w_m, vartheta_d, P1, P2, Td1, Td2] = controlAllocation(params, u);
+
+    % Servo motor dynamics
+    d_vartheta = [0 0 1 0;
+                  0 0 0 1;
+                  -mKp 0 -mKd 0;
+                  0 -mKp 0 -mKd] * vartheta + [0 0;0 0;mKp 0; 0 mKp] * vartheta_d;
+    alpha1 = vartheta(1);
+    alpha2 = vartheta(2);
+    d_alpha1 = vartheta(3);
+    d_alpha2 = vartheta(4);
+    dd_alpha1 = d_vartheta(3);
+    dd_alpha2 = d_vartheta(4);
+
+    %% Forces and moments
+    thrust = Ry(alpha1) * [0;0;P1] + Ry(alpha2) * [0;0;P2];
+    M_gyro = I_r * [-w_m1*d_alpha1*cos(alpha1)+w_m2*d_alpha2*cos(alpha2); 0; 
+                    w_m1*d_alpha1*sin(alpha1)-w_m2*d_alpha2*sin(alpha2)];
+    M_drag = [-(Td1*sin(alpha1)-Td2*sin(alpha2)); 0; 
+              -(Td1*cos(alpha1)-Td2*cos(alpha2))];
+    M_thrust = [l*(P1*cos(alpha1)-P2*cos(alpha2));
+                h*(P1*sin(alpha1)+P2*sin(alpha2));
+                -l*(P1*sin(alpha1)-P2*sin(alpha2))];
+    M_react = - I_a * (dd_alpha1 + dd_alpha2) * [0;1;0];
+
+    %% Newton-Euler equation
+    B_M = -cross(W, I_b * W) + M_thrust + M_drag - M_react - M_gyro + torque_noise;
+    %B_M = -cross(W, I_b * W) + M_thrust;
+
+    dW = I_b \ B_M;
+    dQ = reshape(Q * skew(W), [9 1]);
+
+    I_thrust = Q * thrust / m;
+
+    ddP = [0; 0; -g] + I_thrust ;
+    dydt = [dW; dQ; ddP; dP; d_vartheta];
+    commands = [w_m; vartheta_d];
+    meta = [M_thrust; M_drag; -M_react; -M_gyro];
+end
+
+function [w_m, alpha, P1, P2, Td1, Td2] = controlAllocation(params, u)
+    m = params('m');
+    l = params('l');
+    h = params('h');
+    rho = params('rho');   % kg/m3
+    prop_d = params('prop_d'); % 8 inch = 20.3 cm
+
+    CT_u = params('CT_u'); % upper propeller thrust coefficient
+    CT_l = params('CT_l'); % lower propeller thrust coefficient
+    CP_u = params('CP_u');   % upper propeller drag coefficient
+    CP_l = params('CP_l');   % lower propeller drag coefficient
 
     u_t = m*u(1);
     M = u(2:4);
@@ -53,53 +99,6 @@ function [dydt, commands, meta] = bi_rotor_model(u, y)
     Td2 = P2 * prop_d * CT_l / CP_l;
     w_m1 = sqrt(P1 / (rho * prop_d^4 * CT_u));
     w_m2 = sqrt(P2 / (rho * prop_d^4 * CT_l));
-
-    % Servo motor dynamics
-    vartheta_d = [alpha1; alpha2];
-    d_vartheta = [0 0 1 0;
-                  0 0 0 1;
-                  -mKp 0 -mKd 0;
-                  0 -mKp 0 -mKd] * vartheta + [0 0;0 0;mKp 0; 0 mKp] * vartheta_d;
-    alpha1 = vartheta(1);
-    alpha2 = vartheta(2);
-    d_alpha1 = vartheta(3);
-    d_alpha2 = vartheta(4);
-    dd_alpha1 = d_vartheta(3);
-    dd_alpha2 = d_vartheta(4);
-
-    %% Forces and moments
-    thrust = Ry(alpha1) * [0;0;P1] + Ry(alpha2) * [0;0;P2];
-    M_gyro = I_r * [-w_m1*d_alpha1*cos(alpha1)+w_m2*d_alpha2*cos(alpha2); 0; 
-                    w_m1*d_alpha1*sin(alpha1)-w_m2*d_alpha2*sin(alpha2)];
-    M_drag = [-(Td1*sin(alpha1)-Td2*sin(alpha2)); 0; 
-              -(Td1*cos(alpha1)-Td2*cos(alpha2))];
-    M_thrust = [l*(P1*cos(alpha1)-P2*cos(alpha2));
-                h*(P1*sin(alpha1)+P2*sin(alpha2));
-                -l*(P1*sin(alpha1)-P2*sin(alpha2))];
-    M_react = - I_a * (dd_alpha1 + dd_alpha2) * [0;1;0];
-
-    %% Newton-Euler equation
-    torque_noise = 0;
-    %B_M = -cross(W, I_b * W) + M_thrust + M_drag - M_react - M_gyro + torque_noise;
-    B_M = -cross(W, I_b * W) + M_thrust;
-
-    dW = I_b \ B_M;
-    dQ = reshape(Q * skew(W), [9 1]);
-
-    I_thrust = Q * thrust / m;
-
-    ddP = [0; 0; -g] + I_thrust ;
-    dydt = [dW; dQ; ddP; dP; d_vartheta];
-    commands = [w_m1; w_m2; vartheta_d];
-    meta = [M_thrust; M_drag; -M_react; -M_gyro];
-end
-
-function r = Ry(t)
-    r = [cos(t)  0 sin(t);
-         0       1 0; 
-         -sin(t) 0 cos(t)];
-end
-
-function X = skew(x)
-    X=[0 -x(3) x(2) ; x(3) 0 -x(1) ; -x(2) x(1) 0 ];
+    w_m = [w_m1; w_m2];
+    alpha = [alpha1; alpha2];
 end
