@@ -16,7 +16,7 @@ progress = 0;
 % Initial states
 y0 = zeros([13+4+9 1]);
 %Q2 = theta_vector2Q(pi, [1;0;0]);
-y0(4:7) = [0; 1; 0; 0]; % Initial orientation
+y0(4:7) = [1; 0; 0; 0]; % Initial orientation
 %y0(4:7) = Q2;
 y0(11:13) = [-20 -10 -20];    % Initial position
 %y0(11:13) = [0 0 0];    % Initial position
@@ -38,8 +38,8 @@ options = odeset('RelTol',1e-5,'AbsTol',1e-7);
 [t, y] = ode45(@drone_fly, [0 T], y0, options);
 
 dydt = zeros([length(y) 13+4+9]);
-inputs = zeros([length(y) 4]);
-outputs = zeros([length(y) 25+3+6]);
+inputs = zeros([length(y) 4+4]);
+outputs = zeros([length(y) 25+3+12]);
 fprintf("] \nForward: [");
 progress = 0;
 rng('default')
@@ -79,9 +79,9 @@ function [dydt, inputs, outputs] = drone_fly(t, y)
     R = Q2R(Q);
     I_thrust = R * [0; 0; u_t];
     
-    inputs = [u_t; u];
+    inputs = [u_t; u; commands];
     desire = reshape(traj(1:4, 1:3)', [12, 1]);
-    outputs = [I_thrust ; u; desire; attitude_d; beta; tilde_mu; meta(4:9)];
+    outputs = [I_thrust ; u; desire; attitude_d; beta; tilde_mu; meta];
 
     % Progress 
     current = 40 * t / T;
@@ -249,6 +249,73 @@ function parameter_chack(params)
     c1
     c2
     c3
+end
+
+
+%% plotter
+function plotter_quaternion(t, r, dydt, y, inputs, outputs, projectpath, foldername, filename)    
+    %% Marker style
+    makerstyle = false;
+    if makerstyle == true
+        lineStyle = ':';
+        markerStyle = 'o';
+    else
+        lineStyle = '--';
+        markerStyle = 'none';
+    end
+
+    %% Extract parameters
+    Tf = inputs(:, 1);
+    u = inputs(:, 2:4);
+    w_m1 = inputs(:, 5);
+    w_m2 = inputs(:, 6);
+    eta = inputs(:, 7);
+    xi = inputs(:, 8);
+
+    thrust = outputs(:, 1:3);
+    B_M = outputs(:, 4:6);
+    traj = reshape(outputs(:, 7:18), [length(outputs), 3, 4]);
+    traj = permute(traj, [1, 3, 2]);
+    Q_d = outputs(:, 19:22);
+    beta = outputs(:, 23:25);
+    tilde_mu = outputs(:, 26:28);
+    theta_a = outputs(:, 29:31);
+    theta_b = outputs(:, 32:34);
+
+    theta1 = y(:, 18:20);
+    theta2 = y(:, 21:23);
+    theta3 = y(:, 24:26);
+
+    % Rotational
+    dW = dydt(:, 1:3);
+    W = y(:, 1:3);        % Angular velocity
+    Qs = y(:, 4:7);       % Orientation
+    eulZXY = Qs(:, 2:4);  % Euler angles
+    attitude_d = Q_d(:, 2:4);
+    R = zeros([length(Qs) 3 3]);
+    for i=1:length(r)
+        R(i, :, :) = Q2R(Qs(r(i), :));
+    end
+    
+    % Translational
+    ddP = dydt(:, 8:10);
+    dP = y(:, 8:10);
+    P = y(:, 11:13);
+    CoP = P(:, 1:3);
+
+    key = {'projectpath', 'foldername', 'filename', 'lineStyle', 'markerStyle'};
+    value = {projectpath, foldername, filename, lineStyle, markerStyle};
+    options = containers.Map(key, value);
+
+    plot_state(t, P, dP, traj, W, beta, eulZXY, attitude_d, options);
+    plot_error(t, P, dP, traj, W, beta, eulZXY, attitude_d, tilde_mu, options);
+    plot_command(t, Tf, u, options);
+    plot_norm(t, dP, P, traj, eulZXY, attitude_d, W, beta, theta1, theta_a, options);
+    plot_estimation(t, theta1, theta2, theta3, theta_a, theta_b, options);
+    %plot_torque(t, B_M_f, B_M_d, B_M_g, B_M_a, options);
+    plot_motor_command(t, w_m1, w_m2, xi, eta, xi, eta, options);
+    plot_3d(t, r, P, CoP, traj, thrust, R, options);
+    plot_animation(t, r, P, traj, options, R);
 end
 
 %% Controller2
