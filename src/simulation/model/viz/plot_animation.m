@@ -21,7 +21,7 @@ function plot_animation(t, r, P, traj, options, R)
         ss_state.YData = P(1:r(i), 2);
         ss_state.ZData = P(1:r(i), 3);
 
-        draw_agent_quad_animation(patch_obj, P(r(i), :), R(r(i), :, :), 1+256*t(r(i))/t(end));
+        draw_agent_quad_animation(patch_obj, P(r(i), :), R(i, :, :), 1+256*t(r(i))/t(end));
         
         % Saving the figure
         frame = getframe(gcf);

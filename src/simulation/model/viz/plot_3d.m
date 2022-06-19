@@ -1,12 +1,12 @@
 function plot_3d(t, r, P, CoP, traj, thrust, R, options)
-    figure(1)
+    figure
     scatter3(P(:, 1), P(:, 2), P(:, 3), 40, t); hold on
     quiver3(CoP(:, 1), CoP(:, 2), CoP(:, 3), thrust(:, 1), thrust(:, 2), thrust(:, 3), 'magenta')
     
     % Draw coordinates of the agent
-    q1 = quiver3(P(:, 1), P(:, 2), P(:, 3), R(:, 1, 1), R(:, 2, 1), R(:, 3, 1), 0.1, 'red'); hold on
-    q2 = quiver3(P(:, 1), P(:, 2), P(:, 3), R(:, 1, 2), R(:, 2, 2), R(:, 3, 2), 0.1, 'green'); hold on
-    q3 = quiver3(P(:, 1), P(:, 2), P(:, 3), R(:, 1, 3), R(:, 2, 3), R(:, 3, 3), 0.1, 'blue'); hold on
+    q1 = quiver3(P(r, 1), P(r, 2), P(r, 3), R(:, 1, 1), R(:, 2, 1), R(:, 3, 1), 0.1, 'red'); hold on
+    q2 = quiver3(P(r, 1), P(r, 2), P(r, 3), R(:, 1, 2), R(:, 2, 2), R(:, 3, 2), 0.1, 'green'); hold on
+    q3 = quiver3(P(r, 1), P(r, 2), P(r, 3), R(:, 1, 3), R(:, 2, 3), R(:, 3, 3), 0.1, 'blue'); hold on
     q1.ShowArrowHead = 'off';
     q2.ShowArrowHead = 'off';
     q3.ShowArrowHead = 'off';
@@ -16,7 +16,7 @@ function plot_3d(t, r, P, CoP, traj, thrust, R, options)
     
     % Draw agent body
     for i=1:length(r)
-        draw_agent_quad(P(r(i), :), R(r(i), :, :), 1+256*t(r(i))/t(end)); hold on
+        draw_agent_quad(P(r(i), :), R(i, :, :), 1+256*t(r(i))/t(end)); hold on
     end
     xlabel('x')
     ylabel('y')

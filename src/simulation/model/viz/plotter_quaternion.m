@@ -33,9 +33,9 @@ function plotter_quaternion(t, r, dydt, y, inputs, outputs, projectpath, foldern
     Qs = y(:, 4:7);       % Orientation
     eulZXY = Qs(:, 2:4);  % Euler angles
     attitude_d = Q_d(:, 2:4);
-    R = zeros([length(Qs) 3 3]);
-    for i=1:length(Qs)
-        R(i, :, :) = Q2R(Qs(i, :));
+    R = zeros([length(r) 3 3]);
+    for i=1:length(r)
+        R(i, :, :) = Q2R(Qs(r(i), :));
     end
     
     % Translational
@@ -48,11 +48,11 @@ function plotter_quaternion(t, r, dydt, y, inputs, outputs, projectpath, foldern
     value = {projectpath, foldername, filename, lineStyle, markerStyle};
     options = containers.Map(key, value);
 
-    plot_3d(t, r, P, CoP, traj, thrust, R, options);
     plot_state(t, P, dP, traj, W, beta, eulZXY, attitude_d, options);
     plot_error(t, P, dP, traj, W, beta, eulZXY, attitude_d, tilde_mu, options);
     plot_command(t, Tf, u, options);
     plot_norm(t, dP, P, traj, eulZXY, attitude_d, W, beta, theta1, theta_a, options);
     plot_estimation(t, theta1, theta2, theta3, theta_a, theta_b, options);
+    plot_3d(t, r, P, CoP, traj, thrust, R, options);
     plot_animation(t, r, P, traj, options, R);
 end

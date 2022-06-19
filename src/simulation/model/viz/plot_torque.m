@@ -1,5 +1,5 @@
 function plot_torque(t, B_M_f, B_M_d, B_M_g, B_M_a, options)
-    figure(7)
+    figure
     plot(t, B_M_f(:, 1),  'r^','DisplayName','M_f: x'); hold on 
     plot(t, B_M_f(:, 2),  'r-','DisplayName','M_f: y'); hold on 
     plot(t, B_M_f(:, 3),  'r+','DisplayName','M_f: z'); hold on  

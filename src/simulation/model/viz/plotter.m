@@ -47,13 +47,14 @@ function plotter(t, r, dydt, y, inputs, outputs, refs, projectpath, foldername, 
         R = reshape(y(:, 4:12), [length(y) 3 3]); % 3x3
         eulZXY = rot2zxy_crossover(R);
         attitude_d = Q_d(:, 1:3);
+        R = R(r, :, :);
     else
         % Quaternion
-        R = zeros([length(y) 3 3]);
+        R = zeros([length(r) 3 3]);
         Qs = y(:, 4:7);       % Orientation
-        eulZXY = Qs(:, 2:4);  % Euler angles
-        for i=1:length(Qs)
-            R(i, :, :) = Q2R(Qs(i, :));
+        eulZXY = Qs(r, 2:4);  % Euler angles
+        for i=1:length(r)
+            R(i, :, :) = Q2R(Qs(r(i), :));
         end
         attitude_d = Q_d(:, 1:3);
     end
