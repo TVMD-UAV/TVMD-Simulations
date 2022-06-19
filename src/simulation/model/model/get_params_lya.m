@@ -22,15 +22,14 @@ function [key, params] = get_params()
     mKp = 200;
     mKd = 20;
 
-    Kp = 0.3; %0.3
+    Kp = 0.3;
     Kv = 0.1;
-    Kv = 1;
     Gamma_v = diag([0.2 0.2 0.8]);
     gamma_q = 10;
-    gamma_theta1 = 0;
-    gamma_theta2 = 0;
-    gamma_theta3 = 0;
-    k_theta = 0;
+    gamma_theta1 = 0.2;
+    gamma_theta2 = 1;
+    gamma_theta3 = 1;
+    k_theta = 1;
     Kq = 20 * eye(3);
     Kw = 20 * eye(3);
 
