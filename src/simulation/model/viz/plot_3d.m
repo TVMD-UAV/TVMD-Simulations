@@ -1,7 +1,7 @@
 function plot_3d(t, r, P, CoP, traj, thrust, R, options)
     figure
-    scatter3(P(:, 1), P(:, 2), P(:, 3), 40, t); hold on
-    quiver3(CoP(:, 1), CoP(:, 2), CoP(:, 3), thrust(:, 1), thrust(:, 2), thrust(:, 3), 'magenta')
+    scatter3(P(r, 1), P(r, 2), P(r, 3), 40, t(r)); hold on
+    quiver3(CoP(r, 1), CoP(r, 2), CoP(r, 3), thrust(r, 1), thrust(r, 2), thrust(r, 3), 'magenta')
     
     % Draw coordinates of the agent
     q1 = quiver3(P(r, 1), P(r, 2), P(r, 3), R(:, 1, 1), R(:, 2, 1), R(:, 3, 1), 0.1, 'red'); hold on
@@ -12,7 +12,7 @@ function plot_3d(t, r, P, CoP, traj, thrust, R, options)
     q3.ShowArrowHead = 'off';
 
     % Draw desired trajectory
-    scatter3(traj(:, 1, 1), traj(:, 2, 1), traj(:, 3, 1), "red", 'Marker','.'); hold on
+    scatter3(traj(r, 1, 1), traj(r, 2, 1), traj(r, 3, 1), "red", 'Marker','.'); hold on
     
     % Draw agent body
     for i=1:length(r)

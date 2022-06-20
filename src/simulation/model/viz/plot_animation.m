@@ -3,7 +3,7 @@ function plot_animation(t, r, P, traj, options, R)
     set(gca,'DataAspectRatio',[1 1 1])
     animation_name = strcat(options('projectpath'), options('foldername'), options('filename'), '_3d.gif');
 
-    scatter3(P(:, 1), P(:, 2), P(:, 3), 'Color', 'none'); hold on
+    scatter3(P(r, 1), P(r, 2), P(r, 3), 'Color', 'none'); hold on
     scatter3([0 max(P(:, 1))+2], [0 max(P(:, 2))+2], [0 max(P(:, 3))+2], 'Color', 'none'); hold on
     ss_traj = scatter3(traj(1, 1, 1), traj(1, 2, 1), traj(1, 3, 1), "red", 'Marker','.'); hold on
     ss_state = scatter3(P(1, 1), P(1, 2), P(1, 3), "blue"); hold on
