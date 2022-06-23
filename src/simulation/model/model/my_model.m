@@ -70,13 +70,12 @@ function [dydt, commands, meta] = my_model(params, u, y)
 
     % Varying Inertia
     I_b = B_I_a + m_a * [r_pg(3).^2 0 0; 0 r_pg(3).^2 0; 0 0 0] + I_fm + m_fm * [r_fm(3).^2 0 0; 0 r_fm(3).^2 0; 0 0 0];
-    I_b = diag([0.6 0.6 0.3]); % Body Inertial
 
     %% Newton-Euler equation
-    I_thrust = I_R_B * thrust/m;
+    I_thrust = -I_R_B * thrust/m;
     B_M = -cross(W, I_b * W) + B_M_f + B_M_d - B_M_g - B_M_a;
 
-    ddP = [0; 0; -g] + I_thrust;
+    ddP = [0; 0; g] + I_thrust;
     dW = I_b \ B_M;
     dQ = 0.5 * [-Q(2:4)'; Q(1)*eye(3)+skew(Q(2:4))] * W;
 
@@ -98,14 +97,15 @@ function [w_m, alpha] = controlAllocation(params, u)
     CP_u = params('CP_u');   % upper propeller drag coefficient
     CP_l = params('CP_l');   % lower propeller drag coefficient
 
-    u_t = u(1);
-    M_d = u(2:4);
+    u_t = m * u(1);
+    M_d = sat(u(2:4), [-1;-1;-1], [1;1;1]);
 
     % Control allocator
+    Tf = u_t;
     Td = M_d(3);
-    Tf = u_t * m;
-    A = [l*Tf Td; -Td l*Tf];
+    A = [-l*Tf Td; -Td -l*Tf];
     alpha = A \ [M_d(1); M_d(2)];
+    alpha = -[alpha(1);alpha(2)];
 
     %% Motor commands
     beta_allo = [CT_u CT_l; prop_d*CP_u -prop_d*CP_l];

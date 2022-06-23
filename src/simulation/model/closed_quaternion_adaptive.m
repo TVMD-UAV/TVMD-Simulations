@@ -5,7 +5,7 @@ addpath('model')
 addpath('viz')
 addpath('helper_functions')
 
-[keys, params] = get_params_lya();
+[keys, params] = get_params_adaptiive();
 parameter_chack(params);
 %return
 %% Simulation parameters
@@ -73,8 +73,8 @@ function [dydt, inputs, outputs] = drone_fly(t, y)
     traj = zeros([4, 5]);
     [u_t, u, attitude_d, beta, tilde_mu, adaptive] = Controller(t, params, traj, y);
     us = [u_t; u];
-    %[dydt_m, commands, meta] = my_model(params, us, y);
-    [dydt_m, commands, meta] = my_model_simplified(params, us, y);
+    [dydt_m, commands, meta] = my_model(params, us, y);
+    %[dydt_m, commands, meta] = my_model_simplified(params, us, y);
     dydt = [dydt_m; adaptive];
 
     %% Newton-Euler equation

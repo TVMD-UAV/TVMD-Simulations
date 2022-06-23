@@ -10,22 +10,20 @@ parameter_chack(params);
 %return
 %% Simulation parameters
 global T progress;
-T = 50;
+T = 100;
 progress = 0;
 
 % Initial states
 y0 = zeros([13+4+9 1]);
 %Q2 = theta_vector2Q(pi, [1;0;0]);
 y0(4:7) = [1; 0; 0; 0]; % Initial orientation
-%y0(4:7) = Q2;
 y0(11:13) = [-20 -10 -20];    % Initial position
-%y0(11:13) = [0 0 0];    % Initial position
 y0(8:10) = [0 0 0];    % Initial velocity
 
 % Reference
+global ts desire;
 syms ts
-%zeta = [10*ts; 30*sin(0.1*ts+3.48); 20*sin(0.1*ts+4.71); 0*ts];
-zeta = [0*ts; 0*ts; 0*ts; 0*ts];
+zeta = [10*ts; 30*sin(0.1*ts+3.48); 20*sin(0.1*ts+4.71); 0*ts];
 d_zeta = diff(zeta);
 dd_zeta = diff(d_zeta);
 ddd_zeta = diff(dd_zeta);
@@ -72,9 +70,10 @@ function [dydt, inputs, outputs] = drone_fly(t, y)
     %traj = TrajectoryPlanner(t);
     traj = zeros([4, 5]);
     [u_t, u, attitude_d, beta, tilde_mu] = Controller(t, params, traj, y);
+    %[u_t, u, attitude_d, beta, tilde_mu] = Controller3(t, params, traj, y);
     us = [u_t; u];
-    %[dydt_m, commands, meta] = my_model(params, us, y);
-    [dydt_m, commands, meta] = my_model_simplified(params, us, y);
+    [dydt_m, commands, meta] = my_model(params, us, y);
+    %[dydt_m, commands, meta] = my_model_simplified(params, us, y);
     dydt = [dydt_m; zeros([9 1])];
 
     %% Newton-Euler equation
@@ -135,7 +134,6 @@ function [Tf, u, attitude_d, beta, tilde_mu] = Controller(t, params, traj, y)
     k_theta = params('k_theta');
 
     k_theta = 0;
-    Kv = 1;
     K1 = Kp * inv(Gamma_v);
     K2 = (Kv + k_theta) * eye(3);
 
@@ -163,15 +161,9 @@ function [Tf, u, attitude_d, beta, tilde_mu] = Controller(t, params, traj, y)
          mu_d(1)^2-norm_mu*c1  mu_d(1)*mu_d(2)          -mu_d(1)*c1;
          mu_d(2)*norm_mu       -mu_d(1)*norm_mu         0] / (norm_mu^2 * c1);
 
-    %% Desired angular velocity
-    tilde_Q = quaternion_multiplication(quaternion_inverse(Q_d), Q);
-    omega_beta = Kp * Kv * phi_h(tilde_v) / Gamma_v * h(tilde_p);
-    beta = M * (traj(1:3, 4) + omega_beta) - Kq * tilde_Q(2:4);
-    %beta = - Kq * tilde_Q(2:4);
-    tilde_W = W - beta;
-
-    % fb
+    % Ws
     R = Q2R(Q);
+    tilde_Q = quaternion_multiplication(quaternion_inverse(Q_d), Q);
     bar_q = skew(z_hat)*tilde_Q(2:4) + tilde_Q(1)*z_hat;
     W1 = -2*u_t*skew(bar_q)*R';
     tilde_mu = W1' * tilde_Q(2:4);
@@ -181,6 +173,16 @@ function [Tf, u, attitude_d, beta, tilde_mu] = Controller(t, params, traj, y)
     W2 = Kv^2 * phi_h(tilde_v);
     W3 = -Kv * phi_h(tilde_v)*W1';
     W4 = -Kp * Gamma_v \ phi_h(tilde_p);
+
+    %% Desired angular velocity
+    omega_beta = Kp * Kv * phi_h(tilde_v) / Gamma_v * h(tilde_p);
+    %Phi = W1*Gamma_v - gamma_q*M*W4;
+    %beta = M * (traj(1:3, 4) + omega_beta) - Kq * tilde_Q(2:4) - Phi*tilde_v/gamma_q;
+    beta = M * (traj(1:3, 4) + omega_beta) - Kq * tilde_Q(2:4);
+    %beta = - Kq * tilde_Q(2:4);
+    tilde_W = W - beta;
+
+    % fb
     Z1 = get_Z1(params, mu_d, traj(1:3, 4) + omega_beta, M, u_t);
     f_mu_d = traj(1:3, 4) + omega_beta + ...
              (W2 + k_theta*K2*phi_h(tilde_v))*h(tilde_v) + ...
@@ -216,7 +218,7 @@ function y = get_Z1(params, mu_d, v, M, u_t)
     y = M' * v * f_gamma / gamma_M + gamma_M * lambda1;
 end
 
-function parameter_chack(params)
+function parameter_chack_full(params)
     g = params('g');
     Kp = params('Kp');
     Kv = params('Kv');
@@ -254,9 +256,36 @@ function parameter_chack(params)
     c3
 end
 
+function parameter_chack(params)
+    g = params('g');
+    Kp = params('Kp');
+    Kv = params('Kv');
+    Kq = params('Kq');
+    Gamma_v = params('Gamma_v');
+    gamma_q = params('gamma_q');
+    disp('Checking desired virtual acceleration')
+    %c1 = (g-delta_rz-delta_a) - (Kp*norm(z_hat'/Gamma_v)+2*k_theta+Kv+esp_alpha);
+
+    delta_r = 1;
+    delta_rz = 1;
+
+    bar_mu_d = Kp*norm(inv(Gamma_v)) + delta_r + Kv;
+    bar_u_t = g + bar_mu_d;
+    delta_mu_d = g - (bar_mu_d + delta_rz);
+
+    bar_u_t
+    delta_mu_d
+
+    c2 = min(diag(Kq)) - (2*sqrt(2)*Kv*bar_u_t)/delta_mu_d - Kv^2/2;
+    c3 = min(diag(Gamma_v)) - gamma_q * Kv / delta_mu_d^2;
+
+    c2
+    c3
+end
+
 
 %% plotter
-function plotter_quaternion(t, r, dydt, y, inputs, outputs, projectpath, foldername, filename)    
+function plotter_quaternion_simplified(t, r, dydt, y, inputs, outputs, projectpath, foldername, filename)    
     %% Marker style
     makerstyle = false;
     if makerstyle == true
@@ -295,7 +324,7 @@ function plotter_quaternion(t, r, dydt, y, inputs, outputs, projectpath, foldern
     Qs = y(:, 4:7);       % Orientation
     eulZXY = Qs(:, 2:4);  % Euler angles
     attitude_d = Q_d(:, 2:4);
-    R = zeros([length(Qs) 3 3]);
+    R = zeros([length(r) 3 3]);
     for i=1:length(r)
         R(i, :, :) = Q2R(Qs(r(i), :));
     end
@@ -317,6 +346,77 @@ function plotter_quaternion(t, r, dydt, y, inputs, outputs, projectpath, foldern
     plot_estimation(t, theta1, theta2, theta3, theta_a, theta_b, options);
     %plot_torque(t, B_M_f, B_M_d, B_M_g, B_M_a, options);
     plot_motor_command(t, w_m1, w_m2, xi, eta, xi, eta, options);
+    plot_3d(t, r, P, CoP, traj, thrust, R, options);
+    plot_animation(t, r, P, traj, options, R);
+end
+
+function plotter_quaternion(t, r, dydt, y, inputs, outputs, projectpath, foldername, filename)    
+    %% Marker style
+    makerstyle = false;
+    if makerstyle == true
+        lineStyle = ':';
+        markerStyle = 'o';
+    else
+        lineStyle = '--';
+        markerStyle = 'none';
+    end
+
+    %% Extract parameters
+    Tf = inputs(:, 1);
+    u = inputs(:, 2:4);
+    w_m1 = inputs(:, 5);
+    w_m2 = inputs(:, 6);
+    eta_d = inputs(:, 7);
+    xi_d = inputs(:, 8);
+    eta = y(:, 14);
+    xi = y(:, 15);
+
+    thrust = outputs(:, 1:3);
+    B_M = outputs(:, 4:6);
+    B_M_f = outputs(:, 29:31);
+    B_M_d = outputs(:, 32:34);
+    B_M_a = outputs(:, 35:37);
+    B_M_g = outputs(:, 38:40);
+    traj = reshape(outputs(:, 7:18), [length(outputs), 3, 4]);
+    traj = permute(traj, [1, 3, 2]);
+    Q_d = outputs(:, 19:22);
+    beta = outputs(:, 23:25);
+    tilde_mu = outputs(:, 26:28);
+    theta_a = zeros([length(y) 3]);
+    theta_b = zeros([length(y) 3]);
+
+    theta1 = y(:, 18:20);
+    theta2 = y(:, 21:23);
+    theta3 = y(:, 24:26);
+
+    % Rotational
+    dW = dydt(:, 1:3);
+    W = y(:, 1:3);        % Angular velocity
+    Qs = y(:, 4:7);       % Orientation
+    eulZXY = Qs(:, 2:4);  % Euler angles
+    attitude_d = Q_d(:, 2:4);
+    R = zeros([length(r) 3 3]);
+    for i=1:length(r)
+        R(i, :, :) = Q2R(Qs(r(i), :));
+    end
+    
+    % Translational
+    ddP = dydt(:, 8:10);
+    dP = y(:, 8:10);
+    P = y(:, 11:13);
+    CoP = P(:, 1:3);
+
+    key = {'projectpath', 'foldername', 'filename', 'lineStyle', 'markerStyle'};
+    value = {projectpath, foldername, filename, lineStyle, markerStyle};
+    options = containers.Map(key, value);
+
+    plot_state(t, P, dP, traj, W, beta, eulZXY, attitude_d, options);
+    plot_error(t, P, dP, traj, W, beta, eulZXY, attitude_d, tilde_mu, options);
+    plot_command(t, Tf, u, options);
+    plot_norm(t, dP, P, traj, eulZXY, attitude_d, W, beta, theta1, theta_a, options);
+    plot_estimation(t, theta1, theta2, theta3, theta_a, theta_b, options);
+    plot_torque(t, B_M_f, B_M_d, B_M_g, B_M_a, options);
+    plot_motor_command(t, w_m1, w_m2, xi, eta, xi_d, eta_d, options);
     plot_3d(t, r, P, CoP, traj, thrust, R, options);
     plot_animation(t, r, P, traj, options, R);
 end
@@ -429,7 +529,8 @@ function [Tf, Td, alpha, attitude_d] = ControllerDragTorque(t, params, traj, p, 
 end
 
 %% ControllerTiltedRotor
-function [w_m1, w_m2, alpha, attitude_d] = ControllerTiltedRotor(t, params, traj, p, v, Q, w, xi, eta)
+function [u_t, u, attitude_d, beta, tilde_mu] = Controller3(t, params, traj, y)
+%function [u_t, u, alpha, attitude_d] = ControllerTiltedRotor(t, params, traj, p, v, Q, w, xi, eta)
     rho = params('rho');   % kg/m3
     prop_d = params('prop_d'); % 8 inch = 20.3 cm
     CT_u = params('CT_u'); % upper propeller thrust coefficient
@@ -440,20 +541,11 @@ function [w_m1, w_m2, alpha, attitude_d] = ControllerTiltedRotor(t, params, traj
     I_a = params('I_a'); % lower propeller thrust coefficient
     r_pg = params('r_pg');  % Leverage length from c.p. to c.g.
 
-    % Control input
-    % Thrust command
-    w_m1 = 198.2746; % Upper rotor speed
-    w_m2 = 198.2746; % Lower rotor speed
-    Tf = rho * w_m1^2 * prop_d^4 * CT_u + rho * w_m2^2 * prop_d^4 * CT_l;
-
-    angle = 5*pi/180;
-    Te = Tf * r_pg(3) * sin(angle);
-    %            x, y
-    alpha = [angle; 0];
-    %alpha = [0; angle];
-    %           psi,                                       phi, theta
-    attitude_d = [0, 0.5 * Te / (I_a(3, 3) + I_fm(3, 3)) * t^2, 0];
-    %attitude_d = [0, 0, 0.5 * Te / (I_a(2, 2) + I_fm(2, 2)) * t^2];
+    u_t = 9.8;
+    u = [0; 0; 0.5];
+    tilde_mu = [0; 0; 0];
+    beta = [0; 0; 0];
+    attitude_d = [0; 0; 0; 0];
 end
 
 function [w_m1, w_m2, alpha, attitude_d] = ControllerTiltedRotor2(t, params, traj, p, v, R, xi, eta)
