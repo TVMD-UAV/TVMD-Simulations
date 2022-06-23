@@ -23,6 +23,6 @@ function plot_motor_command(t, w_m1, w_m2, xi, eta, xi_d, eta_d, options)
     legend()
 
     sgtitle('Command profile')
-    saveas(gcf, strcat(options('projectpath'), options('foldername'), options('filename'), '_command.svg'));
-    saveas(gcf, strcat(options('projectpath'), options('foldername'), options('filename'), '_command.fig'));
+    saveas(gcf, strcat(options('projectpath'), options('foldername'), options('filename'), '_motor_command.svg'));
+    saveas(gcf, strcat(options('projectpath'), options('foldername'), options('filename'), '_motor_command.fig'));
 end

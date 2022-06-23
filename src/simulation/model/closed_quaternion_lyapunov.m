@@ -49,11 +49,14 @@ end
 fprintf("] \n");
 
 %% Plot
-projectpath = 'H:\\.shortcut-targets-by-id\\1_tImZc764OguGZ7irM7kqDx9_f6Tdqwi\\National Taiwan University\\Courses\\110-2\\AdaptiveControl\\FinalProject\\Simulations\\';
+projectpath = 'H:\\.shortcut-targets-by-id\\1_tImZc764OguGZ7irM7kqDx9_f6Tdqwi\\National Taiwan University\\Courses\\110-2\\AdaptiveControl\\FinalProject\\Simulations\\ExtendToMyModel\\';
 foldername = 'test\\';
 filename = 'PositionRegulation';
-r = 1:40:length(y);
-%r = 1:4:length(y);
+
+interval = floor(length(y) / (T * 2));
+fprintf("Ploting interval: %d\n", interval);
+r = 1:interval:length(y);
+
 plotter_quaternion(t, r, dydt, [y zeros([length(y) 9])], inputs, outputs, ...
     projectpath, foldername, filename);
 
