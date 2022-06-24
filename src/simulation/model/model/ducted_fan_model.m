@@ -15,7 +15,7 @@ function [dydt, commands, meta] = ducted_fan_model(params, u, y)
     R = Q2R(Q);
 
     %% Aerial Dynamics
-    [F_d, M_d] = aerial_drag(params, u, y);
+    [F_d, M_d] = aerial_drag(params, u, y, false);
 
     %% Newton-Euler equation
     I_thrust = -R * [0; 0; u(1)];

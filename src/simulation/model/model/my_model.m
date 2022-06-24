@@ -34,7 +34,7 @@ function [dydt, commands, meta] = my_model(params, u, y)
     [w_m, vartheta_d] = controlAllocation(params, u);
     w_m1 = w_m(1);
     w_m2 = w_m(2);
-    
+
     % Servo motor dynamics
     d_vartheta = [0 0 1 0;
                  0 0 0 1;
@@ -43,6 +43,8 @@ function [dydt, commands, meta] = my_model(params, u, y)
 
     eta = vartheta(1);
     xi = vartheta(2);
+    %eta = vartheta_d(1);
+    %xi = vartheta_d(2);
     dd_eta = d_vartheta(3);
     dd_xi = d_vartheta(4);
 
@@ -71,11 +73,13 @@ function [dydt, commands, meta] = my_model(params, u, y)
     % Varying Inertia
     I_b = B_I_a + m_a * [r_pg(3).^2 0 0; 0 r_pg(3).^2 0; 0 0 0] + I_fm + m_fm * [r_fm(3).^2 0 0; 0 r_fm(3).^2 0; 0 0 0];
 
+    [F_d, M_d] = aerial_drag(params, u, y, false);
+
     %% Newton-Euler equation
     I_thrust = -I_R_B * thrust/m;
-    B_M = -cross(W, I_b * W) + B_M_f + B_M_d - B_M_g - B_M_a;
+    B_M = -cross(W, I_b * W) + B_M_f + B_M_d - B_M_g - B_M_a + M_d;
 
-    ddP = [0; 0; g] + I_thrust;
+    ddP = [0; 0; g] + I_thrust + F_d/m;
     dW = I_b \ B_M;
     dQ = 0.5 * [-Q(2:4)'; Q(1)*eye(3)+skew(Q(2:4))] * W;
 

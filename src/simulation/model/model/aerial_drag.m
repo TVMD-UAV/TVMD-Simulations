@@ -1,4 +1,4 @@
-function [F_d, M_d] = aerial_drag(params, u, y)
+function [F_d, M_d] = aerial_drag(params, u, y, using_so3)
     % Drone parameters
     rho = params('rho');
     v_w = params('v_w');
@@ -8,10 +8,14 @@ function [F_d, M_d] = aerial_drag(params, u, y)
     esp_M = params('esp_M');
 
     %% State variables
-    Q = y(4:7);
-    dP = y(8:10);
-
-    R = Q2R(Q);
+    if using_so3
+        Q = y(4:7);
+        dP = y(8:10);
+        R = Q2R(Q);
+    else
+        R = reshape(y(4:12), [3 3]); % 3x3
+        dP = y(13:15);
+    end
 
     %% Aerial Dynamics
     F_drag = norm(v_w - dP)*R*C_d*R'*(v_w - dP);

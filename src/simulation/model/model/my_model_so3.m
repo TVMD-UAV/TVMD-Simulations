@@ -72,9 +72,7 @@ function [dydt, commands, meta] = my_model_so3(params, u, y)
     % Varying Inertia
     I_b = B_I_a + m_a * [r_pg(3).^2 0 0; 0 r_pg(3).^2 0; 0 0 0] + I_fm + m_fm * [r_fm(3).^2 0 0; 0 r_fm(3).^2 0; 0 0 0];
 
-    %[F_d, M_d] = aerial_drag(params, u, y);
-    F_d = 0;
-    M_d = 0;
+    [F_d, M_d] = aerial_drag(params, u, y, true);
 
     %% Newton-Euler equation
     I_thrust = Q * thrust/m;
