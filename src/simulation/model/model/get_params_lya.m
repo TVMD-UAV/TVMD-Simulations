@@ -40,7 +40,7 @@ function [key, params] = get_params_lya()
     C_d = diag([0.01 0.01 0.005]);
     I_xy = diag([1 1 0]);
     A_cs = 0.114;
-    esp_M = 0.1;
+    esp_M = 0.01;
 
     key = {'g', 'rho', 'prop_d', 'CT_u', 'CT_l', 'CP_u', 'CP_l', 'm', 'm_a', 'm_fm', 'r_pg', 'r_fm', 'I_fm', 'I_a', 'mKp', 'mKd', ...
         'Kp', 'Kv', 'Kq', 'Kw', ...
