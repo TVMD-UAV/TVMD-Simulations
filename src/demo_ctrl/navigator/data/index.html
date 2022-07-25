@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Drone Control System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8">
+    <script src="jquery.min.js"></script>
+    <script src="joy.js"></script>
+</head>
+
+<body>
+    <h1>Drone Control System</h1>
+
+    <section>
+        <h2>Mode change</h2>
+        <button id="btn_idle">Idle</button>
+        <button id="btn_demo">Demo</button>
+        <button id="btn_joystick">Joystick</button>
+        <button id="btn_fixwing">Fix Wing</button>
+    </section>
+
+    <section id="dynamic_section">
+        
+    </section>
+
+    <section id="sec_idle" class="dyn_sec" style="display: none;">
+        <h3>Idle mode</h3>
+        <input type="radio" name="idle" value="fixed"> fixed &nbsp
+        <input type="color" id="input_led_color"><br><br>
+
+        <input type="radio" name="idle" value="wave">wave &nbsp 
+        Frequency: 
+        <input id="input_idle_freq" type="range" min="1" max="100" name="freq" oninput="this.nextElementSibling.value = this.value">
+        <output>50</output>&nbsp HZ
+    </section>
+
+    <section id="sec_demo" class="dyn_sec" style="display: none;">
+        <h3>Demo mode</h3>
+        <input type="radio" name="demo" value="fixed"> fixed <br>
+        <table>
+            <tr>
+                <td>upper motor</td>
+                <td>bottom motor</td>
+                <td>center servo</td>
+                <td>outer servo</td>
+                <td>LED</td>
+                <td>send</td>
+            </tr>
+            <tr>
+                <td>
+                    <input id="input_upper_motor" type="range" min="0" max="255" name="power" oninput="this.nextElementSibling.value = this.value">
+                    <output>128</output>
+                </td>
+                <td>
+                    <input id="input_bottom_motor" type="range" min="0" max="255" name="power" oninput="this.nextElementSibling.value = this.value">
+                    <output>128</output>
+                </td>
+                <td>
+                    <input id="input_center_motor" type="range" min="0" max="255" name="power" oninput="this.nextElementSibling.value = this.value">
+                    <output>128</output>
+                </td>
+                <td>
+                    <input id="input_outer_motor" type="range" min="0" max="255" name="power" oninput="this.nextElementSibling.value = this.value">
+                    <output>128</output>
+                </td>
+                <td>
+                    <input id="input_led_color" type="color" id="led_color">
+                </td>
+                <td><input type="button" id="btn_send" value="send"></td>
+            </tr>
+        </table>
+        <br><br><br>
+
+        <input type="radio" name="demo" value="wave"> wave <br>
+        Frequency: 
+        <input id="input_demo_freq" type="range" min="1" max="100" name="freq" oninput="this.nextElementSibling.value = this.value">
+        <output>50</output>&nbsp HZ
+    </section>
+
+    <section id="sec_joystick" class="dyn_sec" >
+        <h3>Joystick mode</h3>
+        <div id="joyDiv" style="width:200px;height:200px;margin-left:auto;margin-right:auto;"></div>
+    </section>
+
+    <section id="sec_fixwing" class="dyn_sec" style="display: none;">
+        <h3>Fix Wing mode</h3>
+        <img src="FixWing.png" style="max-width:600px;">
+        
+    </section>
+    
+</body>
+
+<style>
+html {
+    background-color:powderblue;
+    color: black;
+    text-align: center;
+    align-content: center;
+}
+
+table, tr, td {
+    align-content: center;
+    border: 1px solid black;
+    border-collapse: collapse;
+    padding: 5px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+
+input[type="color"] {
+    width: 50px;
+    height: 50px;
+}
+
+section {
+    margin: 10px;
+}
+
+button {
+    padding: 16px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    -webkit-transition-duration: 0.4s; /* Safari */
+    transition-duration: 0.4s;
+    cursor: pointer;
+
+    background-color: #4CAF50; 
+    color: white; 
+    border: 2px solid #4CAF50;
+}
+
+button:hover {
+    background-color: powderblue;
+    color: black;
+}
+
+/* #dynamic_section {
+    display: flex;
+    justify-content: center; 
+    align-items: center; 
+} */
+
+</style>
+
+<script>
+const Modes = {
+    None: 0,
+	Idle: 1,
+	Demo: 2,
+	Joystick: 3,
+	Fixwing: 4
+}
+var mode = Modes.None;
+$(document).ready(()=>{
+    var joy = new JoyStick('joyDiv', {}, function(stickData) {
+        if (mode === Modes.Joystick){
+            console.log(stickData.x, stickData.y)
+        }
+        
+    })
+    clear_all()
+    // $('input[type=radio]').change(()=>{
+    //     if (mode === Modes.Idle){
+    //         if (this.name == "idle"){
+    //             if (this.value == "fixed"){
+    //                 $.ajax({url:"/"})
+    //             }
+    //             else{
+
+    //             }
+    //         }
+    //     }
+    // })
+    $('input[type=color]').change(()=>{
+        if($('input[type=radio][value="fixed"]:checked').length){
+            var color_rgb = hexToRgb($('#input_led_color').val())
+            $.ajax({
+                url: "/data",
+                type: "get",
+                data: {
+                    color_r: (color_rgb.r / 16).toFixed(),
+                    color_g: (color_rgb.g / 16).toFixed(),
+                    color_b: (color_rgb.b / 16).toFixed()
+                }
+            })
+        }
+    })
+
+    $('input[type=range][name="freq"]').change((event)=>{
+        if($('input[type=radio][value="wave"]:checked').length){
+            $.ajax({url: "/data", type: "get", data: {freq: $(event.target).val()}})
+        }
+    })
+
+    $('input[type=range][name="power"]').change((event)=>{
+        if($('input[type=radio][value="fixed"]:checked').length){
+            switch(event.target.id) {
+                case "input_upper_motor":
+                    $.ajax({url: "/data", type: "get", data: {upper: $(event.target).val()}})
+                    break;
+                case "input_bottom_motor":
+                    $.ajax({url: "/data", type: "get", data: {bottom: $(event.target).val()}})
+                    break;
+                case "input_center_motor":
+                    $.ajax({url: "/data", type: "get", data: {center: $(event.target).val()}})
+                    break;
+                case "input_outer_motor":
+                    $.ajax({url: "/data", type: "get", data: {outer: $(event.target).val()}})
+                    break;
+            }
+        }
+    })
+
+    $('input[type=radio]').click((event)=>{
+        if(event.target.value == "fixed"){
+            $.ajax({url: "/submode", type: "get", data: {mode: 1}})
+        }
+        else{
+            $.ajax({url: "/submode", type: "get", data: {mode: 2}})
+        }
+    })
+})
+var container = $('#dynamic_section')
+
+$('#btn_idle').click(()=>{
+    clear_all()
+    $('#sec_idle').show()
+    mode = Modes.Idle
+    $.ajax({url: "/mode", type: "get", data: {mode: mode}})
+    
+})
+
+$('#btn_demo').click(()=>{
+    // container.empty()
+    // container.append(`<h3>Demo mode</h3>`)
+
+    // var $table = $('<table>')
+    
+    // var $row = $('<tr></tr>')
+    // var $col1 = $('<td>上 動力馬達</td>')
+    // var $col2 = $('<td>下 動力馬達</td>')
+    // var $col3 = $('<td>左右傾角 伺服馬達</td>')
+    // var $col4 = $('<td>前後傾角 伺服馬達</td>')
+    // var $col5 = $('<td>LED</td>')
+    // var $col6 = $('<td>傳送</td>')
+    // $row.append($col1, $col2, $col3, $col4, $col5, $col6)
+    // $table.append($row)
+
+    // var $row = $('<tr></tr>')
+    // var $col1 = $('<td><input id="input_upper_motor" type="range" min="0" max="255" oninput="this.nextElementSibling.value = this.value">\
+    //     <output>128</output></td>')
+    // var $col2 = $('<td><input id="input_bottom_motor" type="range" min="0" max="255" oninput="this.nextElementSibling.value = this.value">\
+    //     <output>128</output></td>')
+    // var $col3 = $('<td><input id="input_center_servo" type="range" min="0" max="255" oninput="this.nextElementSibling.value = this.value">\
+    //     <output>128</output></td>')
+    // var $col4 = $('<td><input id="input_outer_servo" type="range" min="0" max="255" oninput="this.nextElementSibling.value = this.value">\
+    //     <output>128</output></td>')
+    // var $col5 = $('<td><input id="input_led_color" type="color" id="led_color"></td>')
+    // var $col6 = $('<td><input type="button" id="btn_send" value="傳送"></td>')
+    // $row.append($col1, $col2, $col3, $col4, $col5, $col6)
+    // $table.append($row)
+    
+    // container.append($table)
+    clear_all()
+    $('#sec_demo').show()
+    mode = Modes.Demo
+    $.ajax({url: "/mode", type: "get", data: {mode: mode}})
+})
+
+$('#btn_joystick').click(()=>{
+    // container.empty()
+    // container.append(`<h3>Joystick mode</h3>`)
+
+    // container.append(`<div id="joyDiv" style="width:200px;height:200px;margin-left:auto;margin-right:auto;"></div>`)
+    // var joy = new JoyStick('joyDiv', {}, function(stickData) {
+    //     console.log(stickData.x, stickData.y)
+    // })
+    clear_all()
+    $('#sec_joystick').show()
+    mode = Modes.Joystick
+    $.ajax({url: "/mode", type: "get", data: {mode: mode}})
+})
+
+$('#btn_fixwing').click(()=>{
+    // container.empty()
+    // container.append(`<h3>Fix Wing mode</h3>`)
+    clear_all()
+    $('#sec_fixwing').show()
+    mode = Modes.Fixwing
+    $.ajax({url: "/mode", type: "get", data: {mode: mode}})
+})
+
+$('#input_led_color_all').on('change', ()=>{
+    var color_rgb = hexToRgb($('#input_led_color_all').val())
+    // alert(color_rgb.r + ' ' + color_rgb.g + ' ' + color_rgb.b)
+    $.ajax({
+        url: "/get",
+        type: "get",
+        data: {
+            b_color_r: (color_rgb.r / 16).toFixed(),
+            b_color_g: (color_rgb.g / 16).toFixed(),
+            b_color_b: (color_rgb.b / 16).toFixed()
+        }
+    })
+})
+
+$('#btn_send').click(()=>{
+    // var color_rgb = hexToRgb($('#input_led_color').val())
+    /*$.ajax({
+        url: "/get",
+        type: "get",
+        data: {
+            id: $('#input_id').val(),
+            upper: $('#input_upper').val(),
+            bottom: $('#input_bottom').val(),
+            center: $('#input_center').val(),
+            outer: $('#input_outer').val(),
+            color_r: (color_rgb.r / 16).toFixed(),
+            color_g: (color_rgb.g / 16).toFixed(),
+            color_b: (color_rgb.b / 16).toFixed()
+        }
+    })*/
+})
+
+$('#a_btn_send').click(()=>{
+    var color_rgb = hexToRgb($('#a_input_led_color').val())
+    $.ajax({
+        url: "/get",
+        type: "get",
+        data: {
+            id: 0,
+            upper: $('#a_input_upper').val(),
+            bottom: $('#a_input_bottom').val(),
+            center: $('#a_input_center').val(),
+            outer: $('#a_input_outer').val(),
+            color_r: (color_rgb.r / 16).toFixed(),
+            color_g: (color_rgb.g / 16).toFixed(),
+            color_b: (color_rgb.b / 16).toFixed()
+        }
+    })
+})
+
+function clear_all(){
+    $('.dyn_sec').hide()
+    $('input[type="radio"]').each(function() {
+        this.checked = false;
+    });
+}
+
+function hexToRgb(hex) {
+    var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+    } : null;
+}
+</script>
+
+</html>
