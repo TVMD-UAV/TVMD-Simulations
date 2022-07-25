@@ -2,17 +2,24 @@
 #include "Communication.h"
 #include "Website.h"
 
+#include "Commander.h"
+#include "IdleController.h"
+
 Communication comm = Communication();
 Website website = Website();
 
+Commander commander = Commander();
+
 void setup() {
-  // put your setup code here, to run once:
-  comm.init();
-  website.init();
+    // put your setup code here, to run once:
+    comm.init();
+    website.init();
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-  // Serial.println(millis());
-  // delay(100);
+    static auto last_update_time = millis();
+    if (millis() - last_update_time > 50){
+        website.update();
+        last_update_time = millis();
+    }
 }
