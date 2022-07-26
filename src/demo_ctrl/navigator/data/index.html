@@ -31,7 +31,7 @@
         <input type="radio" name="idle" value="wave">wave &nbsp 
         Frequency: 
         <input id="input_idle_freq" type="range" min="1" max="100" name="freq" oninput="this.nextElementSibling.value = this.value">
-        <output>50</output>&nbsp HZ
+        <output>50</output>  /  10  HZ
     </section>
 
     <section id="sec_demo" class="dyn_sec" style="display: none;">
@@ -40,7 +40,7 @@
         <table>
             <tr>
                 <td>upper motor</td>
-                <td>bottom motor</td>
+                <td>lower motor</td>
                 <td>center servo</td>
                 <td>outer servo</td>
                 <td>LED</td>
@@ -52,7 +52,7 @@
                     <output>128</output>
                 </td>
                 <td>
-                    <input id="input_bottom_motor" type="range" min="0" max="255" name="power" oninput="this.nextElementSibling.value = this.value">
+                    <input id="input_lower_motor" type="range" min="0" max="255" name="power" oninput="this.nextElementSibling.value = this.value">
                     <output>128</output>
                 </td>
                 <td>
@@ -74,19 +74,17 @@
         <input type="radio" name="demo" value="wave"> wave <br>
         Frequency: 
         <input id="input_demo_freq" type="range" min="1" max="100" name="freq" oninput="this.nextElementSibling.value = this.value">
-        <output>50</output>&nbsp HZ
+        <output>50</output>  /  10  HZ
     </section>
 
     <section id="sec_joystick" class="dyn_sec" >
-        <h3>Joystick mode</h3>
+        <h3 id="dyn_h3">Joystick mode</h3>
         <div id="joyDiv" style="width:200px;height:200px;margin-left:auto;margin-right:auto;"></div>
     </section>
 
-    <section id="sec_fixwing" class="dyn_sec" style="display: none;">
+    <!-- <section id="sec_fixwing" class="dyn_sec" style="display: none;">
         <h3>Fix Wing mode</h3>
-        <img src="FixWing.png" style="max-width:600px;">
-        
-    </section>
+    </section> -->
     
 </body>
 
@@ -139,12 +137,6 @@ button:hover {
     color: black;
 }
 
-/* #dynamic_section {
-    display: flex;
-    justify-content: center; 
-    align-items: center; 
-} */
-
 </style>
 
 <script>
@@ -158,34 +150,29 @@ const Modes = {
 var mode = Modes.None;
 $(document).ready(()=>{
     var joy = new JoyStick('joyDiv', {}, function(stickData) {
-        if (mode === Modes.Joystick){
+        if (mode === Modes.Joystick || mode === Modes.Fixwing){
             console.log(stickData.x, stickData.y)
-        }
-        
-    })
-    clear_all()
-    // $('input[type=radio]').change(()=>{
-    //     if (mode === Modes.Idle){
-    //         if (this.name == "idle"){
-    //             if (this.value == "fixed"){
-    //                 $.ajax({url:"/"})
-    //             }
-    //             else{
-
-    //             }
-    //         }
-    //     }
-    // })
-    $('input[type=color]').change(()=>{
-        if($('input[type=radio][value="fixed"]:checked').length){
-            var color_rgb = hexToRgb($('#input_led_color').val())
             $.ajax({
                 url: "/data",
                 type: "get",
                 data: {
-                    color_r: (color_rgb.r / 16).toFixed(),
-                    color_g: (color_rgb.g / 16).toFixed(),
-                    color_b: (color_rgb.b / 16).toFixed()
+                    joystick_x: stickData.x,
+                    joystick_y: stickData.y
+                }
+            })
+        }
+    })
+    clear_all()
+    $('input[type=color]').change((event)=>{
+        if($('input[type=radio][value="fixed"]:checked').length){
+            var color_hsl = HexToHSL($(event.target).val())
+            $.ajax({
+                url: "/data",
+                type: "get",
+                data: {
+                    color_h: color_hsl.h,
+                    color_s: color_hsl.s,
+                    color_l: color_hsl.l
                 }
             })
         }
@@ -193,7 +180,7 @@ $(document).ready(()=>{
 
     $('input[type=range][name="freq"]').change((event)=>{
         if($('input[type=radio][value="wave"]:checked').length){
-            $.ajax({url: "/data", type: "get", data: {freq: $(event.target).val()}})
+            $.ajax({url: "/data", type: "get", data: {freq: $(event.target).val()/10}})
         }
     })
 
@@ -203,8 +190,8 @@ $(document).ready(()=>{
                 case "input_upper_motor":
                     $.ajax({url: "/data", type: "get", data: {upper: $(event.target).val()}})
                     break;
-                case "input_bottom_motor":
-                    $.ajax({url: "/data", type: "get", data: {bottom: $(event.target).val()}})
+                case "input_lower_motor":
+                    $.ajax({url: "/data", type: "get", data: {lower: $(event.target).val()}})
                     break;
                 case "input_center_motor":
                     $.ajax({url: "/data", type: "get", data: {center: $(event.target).val()}})
@@ -218,10 +205,10 @@ $(document).ready(()=>{
 
     $('input[type=radio]').click((event)=>{
         if(event.target.value == "fixed"){
-            $.ajax({url: "/submode", type: "get", data: {mode: 1}})
+            $.ajax({url: "/submode", type: "get", data: {submode: 1}})
         }
         else{
-            $.ajax({url: "/submode", type: "get", data: {mode: 2}})
+            $.ajax({url: "/submode", type: "get", data: {submode: 2}})
         }
     })
 })
@@ -236,36 +223,6 @@ $('#btn_idle').click(()=>{
 })
 
 $('#btn_demo').click(()=>{
-    // container.empty()
-    // container.append(`<h3>Demo mode</h3>`)
-
-    // var $table = $('<table>')
-    
-    // var $row = $('<tr></tr>')
-    // var $col1 = $('<td>上 動力馬達</td>')
-    // var $col2 = $('<td>下 動力馬達</td>')
-    // var $col3 = $('<td>左右傾角 伺服馬達</td>')
-    // var $col4 = $('<td>前後傾角 伺服馬達</td>')
-    // var $col5 = $('<td>LED</td>')
-    // var $col6 = $('<td>傳送</td>')
-    // $row.append($col1, $col2, $col3, $col4, $col5, $col6)
-    // $table.append($row)
-
-    // var $row = $('<tr></tr>')
-    // var $col1 = $('<td><input id="input_upper_motor" type="range" min="0" max="255" oninput="this.nextElementSibling.value = this.value">\
-    //     <output>128</output></td>')
-    // var $col2 = $('<td><input id="input_bottom_motor" type="range" min="0" max="255" oninput="this.nextElementSibling.value = this.value">\
-    //     <output>128</output></td>')
-    // var $col3 = $('<td><input id="input_center_servo" type="range" min="0" max="255" oninput="this.nextElementSibling.value = this.value">\
-    //     <output>128</output></td>')
-    // var $col4 = $('<td><input id="input_outer_servo" type="range" min="0" max="255" oninput="this.nextElementSibling.value = this.value">\
-    //     <output>128</output></td>')
-    // var $col5 = $('<td><input id="input_led_color" type="color" id="led_color"></td>')
-    // var $col6 = $('<td><input type="button" id="btn_send" value="傳送"></td>')
-    // $row.append($col1, $col2, $col3, $col4, $col5, $col6)
-    // $table.append($row)
-    
-    // container.append($table)
     clear_all()
     $('#sec_demo').show()
     mode = Modes.Demo
@@ -273,40 +230,20 @@ $('#btn_demo').click(()=>{
 })
 
 $('#btn_joystick').click(()=>{
-    // container.empty()
-    // container.append(`<h3>Joystick mode</h3>`)
-
-    // container.append(`<div id="joyDiv" style="width:200px;height:200px;margin-left:auto;margin-right:auto;"></div>`)
-    // var joy = new JoyStick('joyDiv', {}, function(stickData) {
-    //     console.log(stickData.x, stickData.y)
-    // })
     clear_all()
+    $("#dyn_h3").text("Joystick mode")
     $('#sec_joystick').show()
     mode = Modes.Joystick
     $.ajax({url: "/mode", type: "get", data: {mode: mode}})
 })
 
 $('#btn_fixwing').click(()=>{
-    // container.empty()
-    // container.append(`<h3>Fix Wing mode</h3>`)
     clear_all()
-    $('#sec_fixwing').show()
+    $("#dyn_h3").text("Fix Wing mode")
+    $('#sec_joystick').show()
+    // $('#sec_fixwing').show()
     mode = Modes.Fixwing
     $.ajax({url: "/mode", type: "get", data: {mode: mode}})
-})
-
-$('#input_led_color_all').on('change', ()=>{
-    var color_rgb = hexToRgb($('#input_led_color_all').val())
-    // alert(color_rgb.r + ' ' + color_rgb.g + ' ' + color_rgb.b)
-    $.ajax({
-        url: "/get",
-        type: "get",
-        data: {
-            b_color_r: (color_rgb.r / 16).toFixed(),
-            b_color_g: (color_rgb.g / 16).toFixed(),
-            b_color_b: (color_rgb.b / 16).toFixed()
-        }
-    })
 })
 
 $('#btn_send').click(()=>{
@@ -327,24 +264,6 @@ $('#btn_send').click(()=>{
     })*/
 })
 
-$('#a_btn_send').click(()=>{
-    var color_rgb = hexToRgb($('#a_input_led_color').val())
-    $.ajax({
-        url: "/get",
-        type: "get",
-        data: {
-            id: 0,
-            upper: $('#a_input_upper').val(),
-            bottom: $('#a_input_bottom').val(),
-            center: $('#a_input_center').val(),
-            outer: $('#a_input_outer').val(),
-            color_r: (color_rgb.r / 16).toFixed(),
-            color_g: (color_rgb.g / 16).toFixed(),
-            color_b: (color_rgb.b / 16).toFixed()
-        }
-    })
-})
-
 function clear_all(){
     $('.dyn_sec').hide()
     $('input[type="radio"]').each(function() {
@@ -359,6 +278,39 @@ function hexToRgb(hex) {
         g: parseInt(result[2], 16),
         b: parseInt(result[3], 16)
     } : null;
+}
+function HexToHSL(hex) {
+    var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+
+    var r = parseInt(result[1], 16);
+    var g = parseInt(result[2], 16);
+    var b = parseInt(result[3], 16);
+
+    r /= 255, g /= 255, b /= 255;
+    var max = Math.max(r, g, b), min = Math.min(r, g, b);
+    var h, s, l = (max + min) / 2;
+
+    if(max == min){
+        h = s = 0; // achromatic
+    } else {
+        var d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch(max) {
+            case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+            case g: h = (b - r) / d + 2; break;
+            case b: h = (r - g) / d + 4; break;
+        }
+        
+        h /= 6;
+    }
+
+    s = s*100;
+    s = Math.round(s);
+    l = l*100;
+    l = Math.round(l);
+    h = Math.round(360*h);
+
+    return {h, s, l};
 }
 </script>
 

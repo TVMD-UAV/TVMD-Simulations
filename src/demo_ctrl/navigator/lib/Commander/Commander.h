@@ -8,7 +8,7 @@
 
 struct AgentCommands_t{
     uint8_t id;
-    uint8_t upper_motor, bottom_motor;
+    uint8_t upper_motor, lower_motor;
     uint8_t center_servo, outer_servo;
     uint8_t h, s, l;
 };
