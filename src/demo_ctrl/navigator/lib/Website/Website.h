@@ -8,6 +8,8 @@
 #include "Commander.h"
 #include "Controller.h"
 #include "IdleController.h"
+#include "DemoController.h"
+#include "JoystickController.h"
 
 class Website{
     public:

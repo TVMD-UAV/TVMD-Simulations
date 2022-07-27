@@ -52,9 +52,11 @@ void Website::routing(){
             break;
         case Demo:
             // code
+            Website::_ctrl = new DemoController(&Website::_commander);
             break;
         case Joystick:
             // code
+            Website::_ctrl = new JoystickController(&Website::_commander);
             break;
         case Fixwing:
             // code
@@ -68,41 +70,34 @@ void Website::routing(){
     server.on("/submode", HTTP_GET, [](AsyncWebServerRequest *request){
         int submode = (request->getParam("submode")->value()).toInt();
         if(submode==1){ // fixed mode
-
+            _ctrl->set_mode(Controller::Regular);
         }
         else{ // wave mode
-
+            _ctrl->set_mode(Controller::SinWave);
         }
     });
 
     server.on("/data", HTTP_GET, [](AsyncWebServerRequest *request) {
-        if (request->hasParam("b_color_r")){
-            Serial.println("全體LED顏色更換");
-            uint8_t r, g, b;
-            r = uint8_t((request->getParam("b_color_r")->value()).toInt());
-            g = uint8_t((request->getParam("b_color_g")->value()).toInt());
-            b = uint8_t((request->getParam("b_color_b")->value()).toInt());
-
-            /*for(int i=0; i<N_PACKETS; i++){
-                packets[i].data.r = r;
-                packets[i].data.g = g;
-                packets[i].data.b = b;
-            }*/
+        if (request->hasParam("color_h")){
+            Serial.println("LED顏色更換");
+            int h, s, l;
+            h = (request->getParam("color_h")->value()).toInt();
+            s = (request->getParam("color_s")->value()).toInt();
+            l = (request->getParam("color_l")->value()).toInt();
         }
+        
+        if (request->hasParam("upper"))
+            _ctrl->set_motor(Controller::Upper, (request->getParam("upper")->value()).toInt());
+        if (request->hasParam("lower"))
+            _ctrl->set_motor(Controller::Lower, (request->getParam("lower")->value()).toInt());
+        if (request->hasParam("center"))
+            _ctrl->set_motor(Controller::Center, (request->getParam("center")->value()).toInt());
+        if (request->hasParam("outer"))
+            _ctrl->set_motor(Controller::Outer, (request->getParam("outer")->value()).toInt());
 
-        if (request->hasParam("id")){
-            Serial.println("單一模組調整");
-            uint8_t id = uint8_t((request->getParam("id")->value()).toInt());
-            /*packets[id].data.id = id;
-            packets[id].data.upper_motor = uint8_t((request->getParam("upper")->value()).toInt());
-            packets[id].data.bottom_motor = uint8_t((request->getParam("bottom")->value()).toInt());
-            packets[id].data.center_servo = uint8_t((request->getParam("center")->value()).toInt());
-            packets[id].data.outer_servo = uint8_t((request->getParam("outer")->value()).toInt());
-            packets[id].data.r = uint8_t((request->getParam("color_r")->value()).toInt());
-            packets[id].data.g = uint8_t((request->getParam("color_g")->value()).toInt());
-            packets[id].data.b = uint8_t((request->getParam("color_b")->value()).toInt());*/
+        if (request->hasParam("joystick_x")){
+            _ctrl->set_direction((request->getParam("joystick_x")->value()).toInt(), (request->getParam("joystick_y")->value()).toInt());
         }
-
 
         request->send(200, "text/plain", "");
     });

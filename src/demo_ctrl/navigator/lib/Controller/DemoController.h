@@ -1,15 +1,17 @@
-#ifndef IDLE_CONTROLLER_H
-#define IDLE_CONTROLLER_H
+#ifndef DEMO_CONTROLLER_H
+#define DEMO_CONTROLLER_H
 
 #include "Controller.h"
 
-class IdleController:public Controller{
+class DemoController:public Controller{
     public:
-    IdleController(Commander *commander);
+    DemoController(Commander *commander);
 
     void generate_commands() override;
 
     void set_mode(LED_Mode new_mode) {_mode = new_mode;};
+
+    void set_motor(Motors motor, uint8_t value) {_motors[motor] = value;};
 
     /*
      @Params
@@ -26,6 +28,7 @@ class IdleController:public Controller{
 
     protected:
     LED_Mode _mode;
+    uint8_t _motors[4] = {0};
     uint8_t _h, _s, _l;
     float _update_freq;
 };
