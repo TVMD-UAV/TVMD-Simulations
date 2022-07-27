@@ -29,9 +29,11 @@ class Commander{
     // For double buffered packets
     UartPacket_t *buf;
 
-    void set_agent_commands(const AgentCommands_t * const com);
+    void set_agent_commands(const AgentCommands_t* const com);
 
     void update_packets();
+
+    void send_single_commands(const UartPacket_t* const p);
 
     void send_commands();
 

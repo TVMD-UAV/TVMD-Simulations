@@ -7,7 +7,7 @@ Commander::Commander():
 void Commander::init(){
     buf = buf1;
     buffer_state = false;
-    Serial2.begin(UART_BAUDRATE);
+    Serial2.begin(UART_BAUDRATE, SERIAL_8N1, BUS_RXD, BUS_TXD);
 }
 
 void Commander::set_agent_commands(const AgentCommands_t * const com){
@@ -36,13 +36,16 @@ void Commander::update_packets(){
     buffer_state = !buffer_state;
 }
 
+void Commander::send_single_commands(const UartPacket_t* const p){
+    for (uint8_t j=0; j<DATA_LEN; j++){
+        Serial2.write(p->raw[j]);
+    }
+    // Terminator
+    Serial2.write(TERMINATE_CHAR);
+}
+
 void Commander::send_commands(){
     for (uint8_t i=0; i<NUM_AGENT; i++){
-        // Headers
-        Serial2.write(HEADER_CHAR);
-        Serial2.write(HEADER_CHAR);
-        for (uint8_t j=0; j<DATA_LEN; j++){
-            Serial2.write(buf[i].raw[j]);
-        }
+        send_single_commands(&buf[i]);
     }
 }
