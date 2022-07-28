@@ -12,6 +12,8 @@ Commander commander = Commander();
 
 void setup() {
     // put your setup code here, to run once:
+    comm.init();
+    website.init();
     commander.init();
 }
 
@@ -34,7 +36,7 @@ void loop() {
     up.data = {
         .id = 0,
         .upper_motor = mx,
-        .bottom_motor = my,
+        .lower_motor = my,
         .center_servo = sy,
         .outer_servo = sx,
         .h = color,
