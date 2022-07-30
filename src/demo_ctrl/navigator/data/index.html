@@ -16,7 +16,7 @@
         <button id="btn_idle">Idle</button>
         <button id="btn_demo">Demo</button>
         <button id="btn_joystick">Joystick</button>
-        <button id="btn_fixwing">Fix Wing</button>
+        <!-- <button id="btn_fixwing">Fix Wing</button> -->
     </section>
 
     <section id="dynamic_section">
@@ -44,7 +44,6 @@
                 <td>center servo</td>
                 <td>outer servo</td>
                 <td>LED</td>
-                <td>send</td>
             </tr>
             <tr>
                 <td>
@@ -66,7 +65,6 @@
                 <td>
                     <input id="input_led_color" type="color" id="led_color">
                 </td>
-                <td><input type="button" id="btn_send" value="send"></td>
             </tr>
         </table>
         <br><br><br>
@@ -79,7 +77,12 @@
 
     <section id="sec_joystick" class="dyn_sec" >
         <h3 id="dyn_h3">Joystick mode</h3>
-        <div id="joyDiv" style="width:200px;height:200px;margin-left:auto;margin-right:auto;"></div>
+
+        <input type="radio" name="joystick" value="hover"> Hover
+        <input type="radio" name="joystick" value="fixwing"> Fix wing <br>
+
+        <div id="joyL" style="width:200px;height:200px;margin-left:auto;margin-right:auto;display: inline-block;"></div>
+        <div id="joyR" style="width:200px;height:200px;margin-left:auto;margin-right:auto;display: inline-block;"></div>
     </section>
 
     <!-- <section id="sec_fixwing" class="dyn_sec" style="display: none;">
@@ -144,22 +147,41 @@ const Modes = {
     None: 0,
 	Idle: 1,
 	Demo: 2,
-	Joystick: 3,
-	Fixwing: 4
+	Joystick: 3
 }
 var mode = Modes.None;
 $(document).ready(()=>{
-    var joy = new JoyStick('joyDiv', {}, function(stickData) {
-        if (mode === Modes.Joystick || mode === Modes.Fixwing){
-            console.log(stickData.x, stickData.y)
+    let ux=0, uy=0, uz=0
+    let mx=0, my=0, mz=0
+    setInterval(()=>{
+        if (mode == Modes.Joystick){
             $.ajax({
                 url: "/data",
                 type: "get",
                 data: {
-                    joystick_x: stickData.x,
-                    joystick_y: stickData.y
+                    ux: ux,
+                    uy: uy,
+                    uz: uz,
+                    mx: mx,
+                    my: my,
+                    mz: mz
                 }
             })
+        }
+    }, 100)
+    
+    var joy = new JoyStick('joyL', {}, function(stickData) {
+        if (mode === Modes.Joystick){
+            // console.log("joyL", stickData.x, c)
+            uz = stickData.y
+            mz = stickData.x
+        }
+    })
+    var joy = new JoyStick('joyR', {}, function(stickData) {
+        if (mode === Modes.Joystick){
+            // console.log("joyR", stickData.x, stickData.y)
+            ux = stickData.x
+            uy = stickData.y
         }
     })
     clear_all()
@@ -207,8 +229,15 @@ $(document).ready(()=>{
         if(event.target.value == "fixed"){
             $.ajax({url: "/submode", type: "get", data: {submode: 1}})
         }
-        else{
+        else if(event.target.value == "wave"){
             $.ajax({url: "/submode", type: "get", data: {submode: 2}})
+        }
+
+        else if(event.target.value == "hover"){
+            $.ajax({url: "/submode", type: "get", data: {mode: 1}})
+        }
+        else if(event.target.value == "fixwing"){
+            $.ajax({url: "/submode", type: "get", data: {mode: 2}})
         }
     })
 })
@@ -237,32 +266,14 @@ $('#btn_joystick').click(()=>{
     $.ajax({url: "/mode", type: "get", data: {mode: mode}})
 })
 
-$('#btn_fixwing').click(()=>{
+/*$('#btn_fixwing').click(()=>{
     clear_all()
     $("#dyn_h3").text("Fix Wing mode")
     $('#sec_joystick').show()
     // $('#sec_fixwing').show()
     mode = Modes.Fixwing
     $.ajax({url: "/mode", type: "get", data: {mode: mode}})
-})
-
-$('#btn_send').click(()=>{
-    // var color_rgb = hexToRgb($('#input_led_color').val())
-    /*$.ajax({
-        url: "/get",
-        type: "get",
-        data: {
-            id: $('#input_id').val(),
-            upper: $('#input_upper').val(),
-            bottom: $('#input_bottom').val(),
-            center: $('#input_center').val(),
-            outer: $('#input_outer').val(),
-            color_r: (color_rgb.r / 16).toFixed(),
-            color_g: (color_rgb.g / 16).toFixed(),
-            color_b: (color_rgb.b / 16).toFixed()
-        }
-    })*/
-})
+})*/
 
 function clear_all(){
     $('.dyn_sec').hide()
