@@ -65,4 +65,6 @@ void demo_program(){
 
     actuator.set_angles(sx, sy);
     actuator.set_thrusts(mx, my);
+    //actuator.set_angles(0, 0);
+    //actuator.set_thrusts(0, 0);
 }

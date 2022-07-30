@@ -23,7 +23,7 @@ void Commander::set_agent_commands(const AgentCommands_t *const com)
     }
 }
 
-void Commander::update_packets()
+void Commander::packets_swap()
 {
     if (buffer_state) {
         // buf2
@@ -46,6 +46,7 @@ void Commander::send_single_commands(const UartPacket_t *const p)
 
 void Commander::send_commands()
 {
+    packets_swap();
     for (uint8_t i = 0; i < NUM_AGENT; i++) {
         send_single_commands(&buf[i]);
     }

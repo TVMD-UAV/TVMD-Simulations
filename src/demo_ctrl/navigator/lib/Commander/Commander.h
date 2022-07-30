@@ -30,17 +30,23 @@ public:
     // For double buffered packets
     UartPacket_t *buf;
 
+    // Set agent command by ID, it will broadcast to all the agents
+    // if a BROADCAST_ID has been set.
     void set_agent_commands(const AgentCommands_t *const com);
 
-    void update_packets();
-
+    // Send commands to single agent
     void send_single_commands(const UartPacket_t *const p);
 
+    // Send commands to all agents
     void send_commands();
 
 protected:
     // Indicating which buffer is used, false means buf1.
     bool buffer_state;
+
+    // Swapping the double mirrored buffer, this will be called automatically by
+    // send_commands()
+    void packets_swap();
 };
 
 

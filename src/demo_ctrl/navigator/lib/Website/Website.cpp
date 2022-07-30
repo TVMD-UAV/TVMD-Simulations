@@ -67,9 +67,9 @@ void Website::routing()
     server.on("/submode", HTTP_GET, [](AsyncWebServerRequest *request) {
         int submode = (request->getParam("submode")->value()).toInt();
         if (submode == 1) {  // fixed mode
-            _ctrl->set_mode(Controller::Regular);
+            _ctrl->set_led_mode(Controller::Regular);
         } else {  // wave mode
-            _ctrl->set_mode(Controller::SinWave);
+            _ctrl->set_led_mode(Controller::SinWave);
         }
     });
 
@@ -96,17 +96,11 @@ void Website::routing()
                              (request->getParam("outer")->value()).toInt());
 
         if (request->hasParam("joystick_x")) {
-            _ctrl->set_direction(
+            /*_ctrl->set_direction(
                 (request->getParam("joystick_x")->value()).toInt(),
-                (request->getParam("joystick_y")->value()).toInt());
+                (request->getParam("joystick_y")->value()).toInt());*/
         }
 
         request->send(200, "text/plain", "");
     });
-}
-
-void Website::update()
-{
-    _ctrl->generate_commands();
-    _commander.send_commands();
 }

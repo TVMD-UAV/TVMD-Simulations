@@ -19,6 +19,5 @@ void JoystickController::generate_commands()
            .h = 0,
            .s = 50,
            .l = 100};
-    set_agent_commands(&com);
-    _commander->update_packets();
+    _commander->set_agent_commands(&com);
 }
