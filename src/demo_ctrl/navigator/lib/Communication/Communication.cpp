@@ -13,9 +13,6 @@ void Communication::init()
     // Initialize debug Serial
     Serial.begin(115200);
 
-    // Initialize command Serial
-    Serial2.begin(9600);
-
     // Initialize Wi-Fi AP
     WiFi.softAP(WIFI_SSID, WIFI_PASS);
     WiFi.softAPConfig(local_ip, gateway, subnet);
