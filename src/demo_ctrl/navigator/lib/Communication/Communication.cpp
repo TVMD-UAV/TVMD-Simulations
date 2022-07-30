@@ -1,15 +1,15 @@
 #include "Communication.h"
 
-Communication::Communication():
-local_ip(192,168,1,1),
-gateway(192,168,1,1),
-subnet(255,255,255,0)
+Communication::Communication()
+    : local_ip(192, 168, 1, 1),
+      gateway(192, 168, 1, 1),
+      subnet(255, 255, 255, 0)
 {
-
 }
 
 
-void Communication::init(){
+void Communication::init()
+{
     // Initialize debug Serial
     Serial.begin(115200);
 

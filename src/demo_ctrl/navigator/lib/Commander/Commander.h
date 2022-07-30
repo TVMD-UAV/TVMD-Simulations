@@ -6,20 +6,21 @@
 
 #define DATA_LEN 8
 
-struct AgentCommands_t{
+struct AgentCommands_t {
     uint8_t id;
     uint8_t upper_motor, lower_motor;
     uint8_t center_servo, outer_servo;
     uint8_t h, s, l;
 };
 
-union UartPacket_t{
+union UartPacket_t {
     uint8_t raw[DATA_LEN];
     AgentCommands_t data;
 };
 
-class Commander{
-    public:
+class Commander
+{
+public:
     Commander();
     void init();
 
@@ -29,16 +30,15 @@ class Commander{
     // For double buffered packets
     UartPacket_t *buf;
 
-    void set_agent_commands(const AgentCommands_t* const com);
+    void set_agent_commands(const AgentCommands_t *const com);
 
     void update_packets();
 
-    void send_single_commands(const UartPacket_t* const p);
+    void send_single_commands(const UartPacket_t *const p);
 
     void send_commands();
 
-    protected:
-
+protected:
     // Indicating which buffer is used, false means buf1.
     bool buffer_state;
 };

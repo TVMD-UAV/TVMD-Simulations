@@ -7,14 +7,15 @@
 
 #include "Commander.h"
 #include "Controller.h"
-#include "IdleController.h"
 #include "DemoController.h"
+#include "IdleController.h"
 #include "JoystickController.h"
 
-class Website{
-    public:
 
-    enum Modes {None=0, Idle, Demo, Joystick, Fixwing};
+class Website
+{
+public:
+    enum Modes { None = 0, Idle, Demo, Joystick, Fixwing };
 
     Website();
     void init();
@@ -24,11 +25,11 @@ class Website{
 
     void update();
 
-    protected:
+protected:
     static Modes pre_mode;
     AsyncWebServer server;
-    
-    static Controller* _ctrl;
+
+    static Controller *_ctrl;
     static Commander _commander;
 };
 
