@@ -23,6 +23,8 @@ public:
     void spiffs_init();
     void routing();
 
+    void update();
+
 protected:
     static Modes pre_mode;
     AsyncWebServer server;

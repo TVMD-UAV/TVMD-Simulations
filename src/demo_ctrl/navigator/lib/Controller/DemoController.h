@@ -3,6 +3,10 @@
 
 #include "Controller.h"
 
+enum MotorMode { Fixed = 0, SineWave };
+
+enum MotorType { Upper = 0, Lower, Center, Outer };
+
 class DemoController : public Controller
 {
 public:
@@ -10,12 +14,19 @@ public:
 
     void generate_commands() override;
 
-    void set_motor(Motors motor, uint8_t value) { _motors[motor] = value; };
+    void set_motor(MotorType motor, uint8_t value) { _motors[motor] = value; };
+
+
+    void generate_led_commands(uint8_t agent_id,
+                               uint8_t &h,
+                               uint8_t &s,
+                               uint8_t &l) override;
+
+    void parse_input(int *inputs_arr, int len) override;
 
 protected:
-    LED_Mode _mode;
+    MotorMode _motor_mode;
     uint8_t _motors[4] = {0};
-    uint8_t _h, _s, _l;
 };
 
 #endif

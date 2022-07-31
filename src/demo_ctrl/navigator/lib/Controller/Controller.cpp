@@ -1,9 +1,9 @@
 #include "Controller.h"
 
 Controller::Controller(Commander *commander)
-    : _commander(commander), _update_interval(20)
+    : _commander(commander), _update_interval(100), controller_type(None)
 {
-    set_led_freq(1.0f);
+    set_led_freq(0.1f);
     set_led_mode(Regular);
 }
 
@@ -43,4 +43,10 @@ void Controller::generate_led_commands(uint8_t agent_id,
         l = _l;
         break;
     }
+
+void Controller::get_agent_pos(uint8_t agent_id, float &x, float &y, float &z)
+{
+    x = agent_pos[agent_id - 1][0];
+    y = agent_pos[agent_id - 1][1];
+    z = agent_pos[agent_id - 1][2];
 }

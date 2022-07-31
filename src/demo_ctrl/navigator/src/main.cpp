@@ -29,5 +29,5 @@ void loop()
         last_update_time = millis();
     }
 
-    ctrl->update();
+    website.update();
 }

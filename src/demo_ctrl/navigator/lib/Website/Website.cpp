@@ -34,6 +34,10 @@ void Website::routing()
         request->send(SPIFFS, "/jquery.min.js");
     });
 
+    server.on("/joy.js", HTTP_GET, [](AsyncWebServerRequest *request) {
+        request->send(SPIFFS, "/joy.js");
+    });
+
     server.on("/mode", HTTP_GET, [](AsyncWebServerRequest *request) {
         Modes mode = (Modes)(request->getParam("mode")->value()).toInt();
 
@@ -41,36 +45,49 @@ void Website::routing()
         if (mode == pre_mode)
             return;
 
-        free(Website::_ctrl);
+        if (_ctrl != NULL)
+            delete Website::_ctrl;
+
         switch (mode) {
         case Idle:
-            // code
             Website::_ctrl = new IdleController(&Website::_commander);
             break;
         case Demo:
-            // code
             Website::_ctrl = new DemoController(&Website::_commander);
             break;
         case Joystick:
-            // code
             Website::_ctrl = new JoystickController(&Website::_commander);
-            break;
-        case Fixwing:
-            // code
             break;
 
         default:
             break;
         }
+        Serial.println("get mode req");
+        request->send(200, "text/plain", "");
+        return;
     });
 
     server.on("/submode", HTTP_GET, [](AsyncWebServerRequest *request) {
         int submode = (request->getParam("submode")->value()).toInt();
-        if (submode == 1) {  // fixed mode
-            _ctrl->set_led_mode(Controller::Regular);
-        } else {  // wave mode
-            _ctrl->set_led_mode(Controller::SinWave);
+        int mode;
+        switch (_ctrl->controller_type) {
+        case Demo:
+            mode = (submode == 1) ? MotorMode::Fixed : MotorMode::SineWave;
+            _ctrl->parse_input(&mode, 1);
+            break;
+
+        case Idle:
+            _ctrl->set_led_mode((submode == 1) ? Controller::Regular
+                                               : Controller::SinWave);
+
+        case JoyStick:
+            mode = (submode == 1) ? Hover : FixedWing;
+            _ctrl->parse_input(&mode, 1);
+            break;
         }
+        Serial.println("get submode req");
+        request->send(200, "text/plain", "");
+        return;
     });
 
     server.on("/data", HTTP_GET, [](AsyncWebServerRequest *request) {
@@ -80,27 +97,50 @@ void Website::routing()
             h = (request->getParam("color_h")->value()).toInt();
             s = (request->getParam("color_s")->value()).toInt();
             l = (request->getParam("color_l")->value()).toInt();
+            _ctrl->set_hsl(h, s, l);
         }
 
-        if (request->hasParam("upper"))
-            _ctrl->set_motor(Controller::Upper,
-                             (request->getParam("upper")->value()).toInt());
-        if (request->hasParam("lower"))
-            _ctrl->set_motor(Controller::Lower,
-                             (request->getParam("lower")->value()).toInt());
-        if (request->hasParam("center"))
-            _ctrl->set_motor(Controller::Center,
-                             (request->getParam("center")->value()).toInt());
-        if (request->hasParam("outer"))
-            _ctrl->set_motor(Controller::Outer,
-                             (request->getParam("outer")->value()).toInt());
+        if (request->hasParam("freq"))
+            _ctrl->set_led_freq((request->getParam("freq")->value()).toFloat());
 
-        if (request->hasParam("joystick_x")) {
-            /*_ctrl->set_direction(
-                (request->getParam("joystick_x")->value()).toInt(),
-                (request->getParam("joystick_y")->value()).toInt());*/
+        // Demo mode
+        if (_ctrl->controller_type == ControllerType::Demo) {
+            int input[2];
+            if (request->hasParam("upper")) {
+                input[0] = MotorType::Upper;
+                input[1] = (request->getParam("upper")->value()).toInt();
+            } else if (request->hasParam("lower")) {
+                input[0] = MotorType::Lower;
+                input[1] = (request->getParam("lower")->value()).toInt();
+            } else if (request->hasParam("center")) {
+                input[0] = MotorType::Center;
+                input[1] = (request->getParam("center")->value()).toInt();
+            } else if (request->hasParam("outer")) {
+                input[0] = MotorType::Outer;
+                input[1] = (request->getParam("outer")->value()).toInt();
+            }
+            _ctrl->parse_input(input, 2);
+        }
+
+        // JoyStick mode
+        if (request->hasParam("ux")) {
+            int inputs[6];
+            inputs[0] = (request->getParam("ux")->value()).toInt();
+            inputs[1] = (request->getParam("uy")->value()).toInt();
+            inputs[2] = (request->getParam("uz")->value()).toInt();
+            inputs[3] = (request->getParam("mx")->value()).toInt();
+            inputs[4] = (request->getParam("my")->value()).toInt();
+            inputs[5] = (request->getParam("mz")->value()).toInt();
+            _ctrl->parse_input(inputs, 6);
         }
 
         request->send(200, "text/plain", "");
+        return;
     });
+}
+
+void Website::update()
+{
+    if (_ctrl != NULL)
+        _ctrl->update();
 }

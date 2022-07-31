@@ -3,6 +3,7 @@
 
 #include "Controller.h"
 
+enum FlightMode { Hover = 0, FixedWing };
 class JoystickController : public Controller
 {
 public:
@@ -10,10 +11,14 @@ public:
 
     void generate_commands() override;
 
-    void set_direction(int x, int y) { _x = x, _y = y; };
+    void parse_input(int *inputs_arr, int len) override;
 
 protected:
     uint8_t _x, _y;
+
+    FlightMode _flight_mode;
+
+    int _inputs[6];
 };
 
 #endif

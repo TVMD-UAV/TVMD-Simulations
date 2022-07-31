@@ -2,8 +2,9 @@
 
 IdleController::IdleController(Commander *commander) : Controller(commander)
 {
-    set_hsl(0, 50, 100);
-    set_led_mode(Regular);
+    set_hsl(0, 100, 50);
+    set_led_mode(SinWave);
+    controller_type = Idle;
 }
 
 void IdleController::generate_commands()

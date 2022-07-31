@@ -3,11 +3,14 @@
 
 #include "Commander.h"
 
+enum ControllerType { None, Idle, Demo, JoyStick };
+
 class Controller
 {
 public:
     enum LED_Mode { Regular, SinWave };
-    enum Motors { Upper, Lower, Center, Outer };
+
+    ControllerType controller_type;
 
     /********************* Global functions *********************/
     Controller(Commander *commander);
@@ -58,8 +61,6 @@ public:
                                        uint8_t &s,
                                        uint8_t &l);
 
-    virtual void set_motor(Motors, uint8_t){};
-
     // A helper to set single agent
     void set_agent_commands(const AgentCommands_t *const com);
 
@@ -70,6 +71,8 @@ protected:
 
     uint8_t _h, _s, _l;
     float _led_freq;
+
+    void get_agent_pos(uint8_t agent_id, float &x, float &y, float &z);
 };
 
 #endif
