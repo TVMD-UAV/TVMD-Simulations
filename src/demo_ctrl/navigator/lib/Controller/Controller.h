@@ -8,7 +8,7 @@ enum ControllerType { None, Idle, Demo, JoyStick };
 class Controller
 {
 public:
-    enum LED_Mode { Regular, SinWave };
+    enum LED_Mode { Regular, SinWave, PosSinWave };
 
     ControllerType controller_type;
 

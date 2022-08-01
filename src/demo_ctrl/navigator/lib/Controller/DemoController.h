@@ -16,12 +16,6 @@ public:
 
     void set_motor(MotorType motor, uint8_t value) { _motors[motor] = value; };
 
-
-    void generate_led_commands(uint8_t agent_id,
-                               uint8_t &h,
-                               uint8_t &s,
-                               uint8_t &l) override;
-
     void parse_input(int *inputs_arr, int len) override;
 
 protected:
