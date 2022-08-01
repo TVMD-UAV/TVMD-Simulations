@@ -16,6 +16,7 @@ class Website
 {
 public:
     enum Modes { None = 0, Idle, Demo, Joystick, Fixwing };
+    enum ControllerState { Normal = 0, Ready };
 
     Website();
     void init();
@@ -29,6 +30,8 @@ protected:
     static Modes pre_mode;
     AsyncWebServer server;
 
+    static ControllerState controller_state;
+    static Controller *_ctrl_ready;
     static Controller *_ctrl;
     static Commander _commander;
 };
