@@ -20,8 +20,10 @@ void Commander::set_agent_commands(const AgentCommands_t *const com)
             mirror[i].data.id = i + 1;
         }
     } else {
-        memcpy(buf[com->id].raw, (void *) com, sizeof(AgentCommands_t));
+        memcpy(mirror[com->id - 1].raw, (void *) com, sizeof(AgentCommands_t));
     }
+
+}
 
 void Commander::packets_swap()
 {
