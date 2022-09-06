@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Drone Control System</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta charset="utf-8">
+    <script src="jquery.min.js"></script>
+    <script src="joy.js"></script>
+</head>
+
+<body>
+    <h1>Drone Control System</h1>
+
+    <section>
+        <h2>Mode change</h2>
+        <button id="btn_idle">Idle</button>
+        <button id="btn_demo">Demo</button>
+        <button id="btn_joystick">Joystick</button>
+        <!-- <button id="btn_fixwing">Fix Wing</button> -->
+    </section>
+
+    <section id="dynamic_section">
+
+    </section>
+
+    <section id="sec_idle" class="dyn_sec" style="display: none;">
+        <h3>Idle mode</h3>
+        <input type="radio" name="idle" value="fixed"> fixed &nbsp
+        <input type="color" id="input_led_color"><br><br>
+
+        <input type="radio" name="idle" value="wave">wave &nbsp
+        Frequency:
+        <input id="input_idle_freq" type="range" min="1" max="100" name="freq"
+            oninput="this.nextElementSibling.value = this.value">
+        <output>50</output> / 10 HZ
+    </section>
+
+    <section id="sec_demo" class="dyn_sec" style="display: none;">
+        <h3>Demo mode</h3>
+        <input type="radio" name="demo" value="fixed"> fixed <br>
+        <table>
+            <tr>
+                <td>upper motor</td>
+                <td>lower motor</td>
+                <td>center servo</td>
+                <td>outer servo</td>
+                <td>LED</td>
+            </tr>
+            <tr>
+                <td>
+                    <input id="input_upper_motor" type="range" min="0" max="255" name="power"
+                        oninput="this.nextElementSibling.value = this.value">
+                    <output>128</output>
+                </td>
+                <td>
+                    <input id="input_lower_motor" type="range" min="0" max="255" name="power"
+                        oninput="this.nextElementSibling.value = this.value">
+                    <output>128</output>
+                </td>
+                <td>
+                    <input id="input_center_motor" type="range" min="0" max="255" name="power"
+                        oninput="this.nextElementSibling.value = this.value">
+                    <output>128</output>
+                </td>
+                <td>
+                    <input id="input_outer_motor" type="range" min="0" max="255" name="power"
+                        oninput="this.nextElementSibling.value = this.value">
+                    <output>128</output>
+                </td>
+                <td>
+                    <input id="input_led_color" type="color" id="led_color">
+                </td>
+            </tr>
+        </table>
+        <br><br><br>
+
+        <input type="radio" name="demo" value="wave"> wave <br>
+        Frequency:
+        <input id="input_demo_freq" type="range" min="1" max="100" name="freq"
+            oninput="this.nextElementSibling.value = this.value">
+        <output>50</output> / 10 HZ
+    </section>
+
+    <section id="sec_joystick" class="dyn_sec">
+        <h3 id="dyn_h3">Joystick mode</h3>
+
+        <input type="radio" name="joystick" value="hover"> Hover
+        <input type="radio" name="joystick" value="fixwing"> Fix wing <br>
+
+        <div id="joyL" style="width:200px;height:200px;margin-left:auto;margin-right:auto;display: inline-block;"></div>
+        <div id="joyR" style="width:200px;height:200px;margin-left:auto;margin-right:auto;display: inline-block;"></div>
+    </section>
+
+    <!-- <section id="sec_fixwing" class="dyn_sec" style="display: none;">
+        <h3>Fix Wing mode</h3>
+    </section> -->
+
+</body>
+
+<style>
+    html {
+        background-color: powderblue;
+        color: black;
+        text-align: center;
+        align-content: center;
+    }
+
+    table,
+    tr,
+    td {
+        align-content: center;
+        border: 1px solid black;
+        border-collapse: collapse;
+        padding: 5px;
+        margin-left: auto;
+        margin-right: auto;
+        margin-top: 10px;
+        margin-bottom: 10px;
+    }
+
+    input[type="color"] {
+        width: 50px;
+        height: 50px;
+    }
+
+    section {
+        margin: 10px;
+    }
+
+    button {
+        padding: 16px 32px;
+        text-align: center;
+        text-decoration: none;
+        display: inline-block;
+        font-size: 16px;
+        margin: 4px 2px;
+        -webkit-transition-duration: 0.4s;
+        /* Safari */
+        transition-duration: 0.4s;
+        cursor: pointer;
+
+        background-color: #4CAF50;
+        color: white;
+        border: 2px solid #4CAF50;
+    }
+
+    button:hover {
+        background-color: powderblue;
+        color: black;
+    }
+</style>
+
+<script>
+    const Modes = {
+        None: 0,
+        Idle: 1,
+        Demo: 2,
+        Joystick: 3
+    }
+    var mode = Modes.None;
+    $(document).ready(() => {
+        let ux = 0, uy = 0, uz = 0
+        let mx = 0, my = 0, mz = 0
+        setInterval(() => {
+            if (mode == Modes.Joystick) {
+                $.ajax({
+                    url: "/data",
+                    type: "get",
+                    data: {
+                        ux: ux,
+                        uy: uy,
+                        uz: uz,
+                        mx: mx,
+                        my: my,
+                        mz: mz
+                    }
+                })
+                console.log([ux, uy, uz, mx, my, mz])
+            }
+        }, 100)
+
+        var joy = new JoyStick('joyL', {}, function (stickData) {
+            if (mode === Modes.Joystick) {
+                // console.log("joyL", stickData.x, c)
+                uz = stickData.y
+                mz = stickData.x
+            }
+        })
+        var joy = new JoyStick('joyR', {}, function (stickData) {
+            if (mode === Modes.Joystick) {
+                // console.log("joyR", stickData.x, stickData.y)
+                ux = stickData.x
+                uy = stickData.y
+            }
+        })
+        clear_all()
+        $('input[type=color]').change((event) => {
+            if ($('input[type=radio][value="fixed"]:checked').length) {
+                var color_hsl = HexToHSL($(event.target).val())
+                $.ajax({
+                    url: "/data",
+                    type: "get",
+                    data: {
+                        color_h: color_hsl.h,
+                        color_s: color_hsl.s,
+                        color_l: color_hsl.l
+                    }
+                })
+            }
+        })
+
+        $('input[type=range][name="freq"]').change((event) => {
+            if ($('input[type=radio][value="wave"]:checked').length) {
+                $.ajax({ url: "/data", type: "get", data: { freq: $(event.target).val() / 10 } })
+            }
+        })
+
+        $('input[type=range][name="power"]').change((event) => {
+            if ($('input[type=radio][value="fixed"]:checked').length) {
+                switch (event.target.id) {
+                    case "input_upper_motor":
+                        $.ajax({ url: "/data", type: "get", data: { upper: $(event.target).val() } })
+                        break;
+                    case "input_lower_motor":
+                        $.ajax({ url: "/data", type: "get", data: { lower: $(event.target).val() } })
+                        break;
+                    case "input_center_motor":
+                        $.ajax({ url: "/data", type: "get", data: { center: $(event.target).val() } })
+                        break;
+                    case "input_outer_motor":
+                        $.ajax({ url: "/data", type: "get", data: { outer: $(event.target).val() } })
+                        break;
+                }
+            }
+        })
+
+        $('input[type=radio]').click((event) => {
+            if (event.target.value == "fixed") {
+                $.ajax({ url: "/submode", type: "get", data: { submode: 1 } })
+            }
+            else if (event.target.value == "wave") {
+                $.ajax({ url: "/submode", type: "get", data: { submode: 2 } })
+            }
+
+            else if (event.target.value == "hover") {
+                $.ajax({ url: "/submode", type: "get", data: { submode: 1 } })
+            }
+            else if (event.target.value == "fixwing") {
+                $.ajax({ url: "/submode", type: "get", data: { submode: 2 } })
+            }
+        })
+    })
+    var container = $('#dynamic_section')
+
+    $('#btn_idle').click(() => {
+        clear_all()
+        $('#sec_idle').show()
+        mode = Modes.Idle
+        $.ajax({ url: "/mode", type: "get", data: { mode: mode } })
+
+    })
+
+    $('#btn_demo').click(() => {
+        clear_all()
+        $('#sec_demo').show()
+        mode = Modes.Demo
+        $.ajax({ url: "/mode", type: "get", data: { mode: mode } })
+    })
+
+    $('#btn_joystick').click(() => {
+        clear_all()
+        $("#dyn_h3").text("Joystick mode")
+        $('#sec_joystick').show()
+        mode = Modes.Joystick
+        $.ajax({ url: "/mode", type: "get", data: { mode: mode } })
+    })
+
+    /*$('#btn_fixwing').click(()=>{
+        clear_all()
+        $("#dyn_h3").text("Fix Wing mode")
+        $('#sec_joystick').show()
+        // $('#sec_fixwing').show()
+        mode = Modes.Fixwing
+        $.ajax({url: "/mode", type: "get", data: {mode: mode}})
+    })*/
+
+    function clear_all() {
+        $('.dyn_sec').hide()
+        $('input[type="radio"]').each(function () {
+            this.checked = false;
+        });
+    }
+
+    function hexToRgb(hex) {
+        var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+        } : null;
+    }
+    function HexToHSL(hex) {
+        var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+
+        var r = parseInt(result[1], 16);
+        var g = parseInt(result[2], 16);
+        var b = parseInt(result[3], 16);
+
+        r /= 255, g /= 255, b /= 255;
+        var max = Math.max(r, g, b), min = Math.min(r, g, b);
+        var h, s, l = (max + min) / 2;
+
+        if (max == min) {
+            h = s = 0; // achromatic
+        } else {
+            var d = max - min;
+            s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+            switch (max) {
+                case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                case g: h = (b - r) / d + 2; break;
+                case b: h = (r - g) / d + 4; break;
+            }
+
+            h /= 6;
+        }
+
+        s = s * 100;
+        s = Math.round(s);
+        l = l * 100;
+        l = Math.round(l);
+        h = Math.round(360 * h);
+
+        return { h, s, l };
+    }
+</script>
+
+</html>
