@@ -3,7 +3,7 @@ rng('default')
 
 addpath('model')
 addpath('viz')
-addpath('helper_functions')
+addpath('../helper_functions')
 
 %% Simulation parameters
 global ts desire T progress;
