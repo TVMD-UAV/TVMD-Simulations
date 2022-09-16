@@ -42,6 +42,6 @@ for i = 1:n_sample
 end
 
 %% Plotters
-plot_forces_profile(t, u, vecs);
-plot_moments_profile(t, u, vecs);
+plot_output_profile(t, u, vecs);
+plot_error_profile(t, u, vecs);
 plot_metrics(t, te, ef, em);

@@ -6,7 +6,7 @@
 % vecs: output vector, 6 x T matrix
 %
 %% ===================================
-function plot_moments_profile(t, u, vecs)
+function plot_error_profile(t, u, vecs)
     figure('Position', [10 10 800 800])
     subplot(6, 1, 1);
     plot(t, (vecs(1, :) - u(1, :)), 'DisplayName', '$$F_x$$', 'LineWidth', 2, 'LineStyle', '--', 'Color', '#0072BD', 'marker', 'o');
