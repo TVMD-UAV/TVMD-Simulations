@@ -9,9 +9,14 @@ function [key, params] = get_conf1()
     sigma_a = pi / 6;
     sigma_b = pi / 2;
 
-    f_max = 1.5;
+    % rate of actuator
+    r_sigma_a = 1 * pi / 6; % eta, x-axis
+    r_sigma_b = 1 * pi / 2; % xi, y-axis
 
-    key = {'p', 'psi', 'sigma_a', 'sigma_b', 'f_max'};
-    value = {p, psi, sigma_a, sigma_b, f_max};
+    f_max = 1.5;
+    r_f = 10;
+
+    key = {'p', 'psi', 'sigma_a', 'sigma_b', 'r_sigma_a', 'r_sigma_b', 'f_max', 'r_f'};
+    value = {p, psi, sigma_a, sigma_b, r_sigma_a, r_sigma_b, f_max, r_f};
     params = containers.Map(key, value);
 end
