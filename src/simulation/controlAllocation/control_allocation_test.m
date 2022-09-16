@@ -66,3 +66,4 @@ plot_output_profile(t, u, vecs);
 plot_error_profile(t, u, vecs);
 plot_metrics(t, te, ef, em);
 plot_constraints(conf, as, bs, Fs, dt)
+plot_constraints_profile(conf, as, bs, Fs, t, dt)
