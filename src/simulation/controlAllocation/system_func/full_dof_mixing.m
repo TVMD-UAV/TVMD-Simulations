@@ -3,12 +3,12 @@
 % Generate full DOF commands from agents
 % P: configuration coordinates in body frame
 % psi: orientations of agents
-% eta: y-axis angles for each agent
-% xi: x-axis angles for each agent
-% F: thrust magnitude for each agent
+% eta: y-axis angles for each agent (expected to be a column vector)
+% xi: x-axis angles for each agent (expected to be a column vector)
+% F: thrust magnitude for each agent (expected to be a column vector)
 %
 %% ===================================
-function vec = full_dof_mixing(P, psi, eta, xi, F)
+function vec = full_dof_mixing(P, psi, xi, eta, F)
     n = length(psi);
     R = zeros([n, 3, 3]);
 
@@ -18,9 +18,7 @@ function vec = full_dof_mixing(P, psi, eta, xi, F)
 
     M = get_M(n, psi, P);
 
-    Fi = [(sin(xi) .* F);
-        (-sin(eta) .* cos(xi) .* F);
-        (cos(eta) .* cos(xi) .* F); ];
-    Fi = reshape(Fi, [3 * n 1]);
+    Fi = [(sin(xi) .* F) (-sin(eta) .* cos(xi) .* F) (cos(eta) .* cos(xi) .* F)];
+    Fi = reshape(Fi', [3 * n 1]);
     vec = M * Fi;
 end
