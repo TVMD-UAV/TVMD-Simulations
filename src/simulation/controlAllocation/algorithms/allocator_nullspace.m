@@ -59,12 +59,12 @@ function [a, b, F, x] = allocator_nullspace(u_d, conf, f0, a0, b0, dt)
     dx_ub = min(x_max - x0, r_x_max);
     dx_lb = r_x_min;
     dx_ub = r_x_max;
-    (dx_ub - dx_lb)'
     lb = [dx_lb; -ones([3 * n 1]); -ones([3 * n - 6 1])];
     ub = [dx_ub; ones([3 * n 1]); ones([3 * n - 6 1])];
 
     % QP Solver
-    x = quadprog(H, [], [], [], Aeq, beq, lb, ub);
+    options = optimoptions(@quadprog, 'Algorithm', 'interior-point-convex', 'Display', 'off');
+    x = quadprog(H, [], [], [], Aeq, beq, lb, ub, [], options);
 
     df = x(1:n);
     da = x(n + 1:2 * n);
@@ -78,7 +78,7 @@ function [a, b, F, x] = allocator_nullspace(u_d, conf, f0, a0, b0, dt)
     Fs = pseudo_inverse(W) * u_d + Nw * zs;
     [F, a, b] = inverse_input(Fs);
 
-    fprintf("RMSE equality error: %.4x\n", sqrt(mean((beq - Aeq * x).^2)))
-    fprintf("mean slack error: %.4x\n", mean(s))
-    fprintf("cost: %.4x\n", x' * H * x)
+    % fprintf("RMSE equality error: %.4x\n", sqrt(mean((beq - Aeq * x).^2)))
+    % fprintf("mean slack error: %.4x\n", mean(s))
+    % fprintf("cost: %.4x\n", x' * H * x)
 end
