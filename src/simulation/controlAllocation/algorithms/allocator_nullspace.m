@@ -1,6 +1,6 @@
-function [a, b, F, x] = allocator_nullspace(u_d, conf, f0, a0, b0, dt)
+function [a, b, F, x, u] = allocator_nullspace(u_d, conf, f0, a0, b0, dt)
     %% Configurations
-    P = conf('p');
+    P = conf('pos');
     psi = conf('psi');
     sigma_a = conf('sigma_a');
     sigma_b = conf('sigma_b');
@@ -81,4 +81,5 @@ function [a, b, F, x] = allocator_nullspace(u_d, conf, f0, a0, b0, dt)
     % fprintf("RMSE equality error: %.4x\n", sqrt(mean((beq - Aeq * x).^2)))
     % fprintf("mean slack error: %.4x\n", mean(s))
     % fprintf("cost: %.4x\n", x' * H * x)
+    u = full_dof_mixing(P, psi, a, b, F);
 end

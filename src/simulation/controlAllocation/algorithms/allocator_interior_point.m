@@ -1,6 +1,6 @@
-function [eta, xi, R, F] = allocator_interior_point(u, W, conf)
+function [eta, xi, R, F, vecs] = allocator_interior_point(u, W, conf)
     % Configurations
-    P = conf('p');
+    P = conf('pos');
     psi = conf('psi');
     sigma_a = conf('sigma_a');
     sigma_b = conf('sigma_b');
@@ -29,6 +29,7 @@ function [eta, xi, R, F] = allocator_interior_point(u, W, conf)
         R(i, :, :) = Rx(eta(i)) * Ry(xi(i));
     end
 
+    vecs = full_dof_mixing(P, psi, eta, xi, F);
 end
 
 function y = costfun(x, W)
