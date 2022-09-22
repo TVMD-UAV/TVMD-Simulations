@@ -16,7 +16,7 @@ function [key, params] = get_conf1()
     f_max = 1.5;
     r_f = 10;
 
-    key = {'p', 'psi', 'sigma_a', 'sigma_b', 'r_sigma_a', 'r_sigma_b', 'f_max', 'r_f'};
+    key = {'pos', 'psi', 'sigma_a', 'sigma_b', 'r_sigma_a', 'r_sigma_b', 'f_max', 'r_f'};
     value = {p, psi, sigma_a, sigma_b, r_sigma_a, r_sigma_b, f_max, r_f};
     params = containers.Map(key, value);
 end

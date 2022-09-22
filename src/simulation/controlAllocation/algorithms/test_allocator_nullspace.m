@@ -67,8 +67,8 @@ r_x_max = dt * reshape((ones([1 n]) .* [r_f; r_sigma_a; r_sigma_b])', [3 * n 1])
 dx_lb = max(x_min - x0, r_x_min);
 dx_ub = min(x_max - x0, r_x_max);
 
-disp("bound")
-(x(1:30) - dx_lb > -1e-5)' & (dx_ub - x(1:30) > -1e-5)'
+%disp("bound")
+%(x(1:30) - dx_lb > -1e-5)' & (dx_ub - x(1:30) > -1e-5)'
 
 dx_lb = reshape(dx_lb, [n 3])';
 dx_ub = reshape(dx_ub, [n 3])';
