@@ -5,15 +5,21 @@ addpath('../model/model')
 addpath('../model/viz')
 addpath('../helper_functions')
 
+% Control allocator
+addpath('../controlAllocation/algorithms')
+addpath('../controlAllocation/system_func')
+addpath('../controlAllocation/evaluation')
+addpath('../controlAllocation/viz')
+
 %% Simulation parameters
 global T progress;
-T = 10;
+T = 5;
 progress = 0;
+n = 10;
 
 % Desired trajectory
 syms ts
-global ts;
-global desire
+global desire_t
 
 %% Circular trajectory
 w0 = 2 * pi / 10;
@@ -25,40 +31,40 @@ zeta = [3 * sin(0.5 * ts); 2 * ts; 0 * ts; 0 * ts];
 d_zeta = diff(zeta);
 dd_zeta = diff(d_zeta);
 desire = [zeta d_zeta dd_zeta];
+desire_t = matlabFunction(desire);
 
-% Initial conditions
-%                   x y z
-%initial_position = [0 -10 -10];
-initial_position = [0 0 0];
+%% Initial conditions
 %                              psi, phi, theta
 initial_orientation = getI_R_B(0, 0.5, 0.5);
 
-y0 = zeros([18 + 4 1]);
-y0(4:12) = reshape(eye(3) * initial_orientation, [9 1]);
-y0(16:18) = initial_position;
+W0 = [0 0 0]';
+R0 = reshape(eye(3) * initial_orientation, [9 1]);
+P0 = [0 0 0]';
+dP0 = [0 0 0]';
+vtheta0 = reshape(ones([1 n]) .* [187; 187; 0; 0; 0; 0], [6 * n 1]);
+y0 = [W0; R0; dP0; P0; vtheta0];
 
-% Solver
+%% Solver
 fprintf("Solver : [");
 options = odeset('RelTol', 1e-5, 'AbsTol', 1e-7);
 rng('default')
-[t, y] = ode45(@drone_fly, [0 T], y0, options);
+[t, y] = ode45(@(t, y) drone_fly(t, y), [0 T], y0, options);
 
-dydt = zeros([length(y) 18 + 4]);
-inputs = zeros([length(y) 16]);
-outputs = zeros([length(y) 15]);
-refs = zeros([length(y) 18]);
 fprintf("] \nForward: [");
 progress = 0;
 rng('default')
 
-for i = 1:length(y)
-    [dydt(i, :), inputs(i, :), outputs(i, :), refs(i, :)] = drone_fly(t(i), y(i, :)');
-end
+[dydt, inputs, outputs, refs, metrics] = cellfun(@(t, y) drone_fly(t, y.'), num2cell(t), num2cell(y, 2), 'UniformOutput', false);
+dydt = cell2mat(dydt')';
+inputs = cell2mat(inputs')';
+outputs = cell2mat(outputs')';
+refs = cell2mat(refs')';
+metrics = cell2mat(metrics')';
 
 fprintf("] \n");
 
 %% Plot
-projectpath = 'H:\\.shortcut-targets-by-id\\1_tImZc764OguGZ7irM7kqDx9_f6Tdqwi\\National Taiwan University\\Research\\Multidrone\\VTswarm\\src\\simulation\\model\\outputs\\0728\\swarm_allocation\\';
+projectpath = 'H:\\.shortcut-targets-by-id\\1_tImZc764OguGZ7irM7kqDx9_f6Tdqwi\\National Taiwan University\\Research\\Multidrone\\VTswarm\\src\\simulation\\model\\outputs\\0920\\swarm_allocation\\';
 foldername = 'test\\';
 filename = 'swarm_allocation';
 
@@ -71,32 +77,45 @@ end
 fprintf("Ploting interval: %d\n", interval);
 r = 1:interval:length(y);
 
-plotter(t, r, dydt, y, inputs, outputs, refs, ...
+[key, params] = get_swarm_params();
+plotter(params, t, r, dydt, y, inputs, outputs, refs, metrics, ...
     projectpath, foldername, filename);
 
 %% Functions
-function [dydt, inputs, outputs, refs] = drone_fly(t, y)
+function [dydt, inputs, outputs, refs, metrics] = drone_fly(t, y, mode)
     %% Control input
     global T progress;
     [key, params] = get_swarm_params();
-    %[key, params] = get_params_lya();
+    n = length(params('psi'));
+    dt = 0.01;
 
     traj = TrajectoryPlanner(t);
     %traj = RegulationTrajectory();
-    %[u_t, u_d, attitude_d] = Controller(t, params, traj, y);
-    %[u_t, u_d, attitude_d] = Controller_MinimumSnap(t, params, traj, y);
-    [u_t, u_d, attitude_d] = Controller(params, traj, y);
+    %[u_t, u_m, attitude_d] = Controller(t, params, traj, y);
+    %[u_t, u_m, attitude_d] = Controller_MinimumSnap(t, params, traj, y);
+    [u_t, u_m, attitude_d] = Controller(params, traj, y);
 
-    u = [u_t; u_d];
-    [dydt, commands, meta] = swarm_model(params, u, y);
-    %[dydt, commands, meta] = my_model_so3(params, u, y);
+    W = diag(ones([n 1]));
+    [a0, b0, f0] = get_motor_state(params, n, y);
+    [a_d, b_d, F_d, x, u_d] = allocator_nullspace([u_t; u_m], params, f0, a0, b0, dt);
+    %[a_d, b_d, R, F_d, u_d] = allocator_interior_point([u_t; u_m], W, params);
+    %[a_d, b_d, F_d, u_d] = allocator_moore_penrose([u_t; u_m], params);
+
+    [a, b, F] = output_saturation(params, n, a_d, b_d, F_d);
+
+    [dydt, commands, meta, u] = swarm_model(params, F, a, b, y);
+
+    te = thrust_efficiency(a, b, F);
+    [ef, em] = output_error(u, u_d);
+
     Q = reshape(y(4:12), [3 3]); % 3x3
     thrust = Q * u_t;
 
     desire = reshape(traj', [12, 1]);
-    inputs = [u; commands];
+    inputs = [u; F_d];
     outputs = [thrust; meta];
     refs = [desire; attitude_d'; [0 0 0]'];
+    metrics = [te; ef; em];
 
     %% Progress
     current = 40 * t / T;
@@ -108,12 +127,32 @@ function [dydt, inputs, outputs, refs] = drone_fly(t, y)
 
 end
 
+function [a, b, F] = get_motor_state(params, n, y)
+    %% Parameters
+    g = params('g'); % gravity
+    rho = params('rho'); % kg/m3
+    prop_d = params('prop_d'); % 8 inch = 20.3 cm
+
+    CT_u = params('CT_u'); % upper propeller thrust coefficient
+    CT_l = params('CT_l'); % lower propeller thrust coefficient
+    CP_u = params('CP_u'); % upper propeller drag coefficient
+    CP_l = params('CP_l'); % lower propeller drag coefficient
+
+    % Propeller model
+    P_prop = rho * prop_d^4 * [CT_u CT_l; prop_d * CP_u -prop_d * CP_l];
+
+    vtheta = reshape(y(19:end), [6 n]);
+    wm = vtheta(1:2, :);
+    TfTd = P_prop * (wm.^2);
+    F = TfTd(1, :)';
+    a = vtheta(3, :)';
+    b = vtheta(4, :)';
+end
+
 %% Trajectory planner
 function traj = TrajectoryPlanner(t)
-    global ts
-    global desire
-    traj = double(subs(desire, ts, t));
-    %traj = desire;
+    global desire_t
+    traj = desire_t(t);
 end
 
 function traj = RegulationTrajectory()
@@ -137,8 +176,8 @@ function [u_t, u, attitude_d] = Controller(params, traj, y)
     xi = y(20);
 
     % Gain
-    Kp = diag([1 1 1]) * 0.2;
-    Kd = diag([1 1 1]) * 0.5;
+    Kp = diag([1 1 1]) * 0.2 * 10;
+    Kd = diag([1 1 1]) * 0.5 * 10;
 
     dd_zeta_com = traj(1:3, 3) + Kd * (traj(1:3, 2) - v) + Kp * (traj(1:3, 1) - p);
     psi_d = traj(4, 1);
@@ -157,12 +196,12 @@ function [u_t, u, attitude_d] = Controller(params, traj, y)
     eOmega = w - 0;
 
     % Attitude control
-    Kr = diag([1 1 1]) * 0.2;
-    Ko = diag([1 1 1]) * 0.5;
+    Kr = diag([1 1 1]) * 0.2 * 10;
+    Ko = diag([1 1 1]) * 0.5 * 10;
     M_d = I_b * (- Kr * eR - Ko * eOmega) + cross(w, I_b * w);
 
-    u_t = R' * Tf / m;
-    u = M_d;
+    u_t = R' * Tf; % thrust
+    u = M_d; % moment
 end
 
 function [u_t, u, attitude_d] = Controller_MinimumSnap(t, params, traj, y)
@@ -206,14 +245,40 @@ function [u_t, u, attitude_d] = Controller_MinimumSnap(t, params, traj, y)
     u = M_d;
 end
 
-function plotter(t, r, dydt, y, inputs, outputs, refs, projectpath, foldername, filename)
+function [a, b, F] = output_saturation(conf, n, a, b, F)
+    sigma_a = conf('sigma_a');
+    sigma_b = conf('sigma_b');
+    f_max = conf('f_max');
+
+    x_min = -reshape((ones([1 n]) .* [f_max; sigma_a; sigma_b])', [3 * n 1]);
+    x_max = reshape((ones([1 n]) .* [f_max; sigma_a; sigma_b])', [3 * n 1]);
+
+    w = min(x_max, max(x_min, [F; a; b]));
+    F = w(1:n);
+    a = w(n + 1:2 * n);
+    b = w(2 * n + 1:3 * n);
+end
+
+function plotter(params, t, r, dydt, y, inputs, outputs, refs, metrics, projectpath, foldername, filename)
     rotation_matrix = true;
+    n = 10;
 
     dirname = strcat(projectpath, foldername);
 
     if not(isfolder(dirname))
         mkdir(dirname)
+
     end
+
+    %% Parameters
+    g = params('g'); % gravity
+    rho = params('rho'); % kg/m3
+    prop_d = params('prop_d'); % 8 inch = 20.3 cm
+
+    CT_u = params('CT_u'); % upper propeller thrust coefficient
+    CT_l = params('CT_l'); % lower propeller thrust coefficient
+    CP_u = params('CP_u'); % upper propeller drag coefficient
+    CP_l = params('CP_l'); % lower propeller drag coefficient
 
     %% Marker style
     makerstyle = false;
@@ -237,8 +302,6 @@ function plotter(t, r, dydt, y, inputs, outputs, refs, projectpath, foldername, 
     ddP = dydt(:, 13:15);
     dP = y(:, 13:15);
     P = y(:, 16:18);
-    xi = y(:, 19);
-    eta = y(:, 20);
 
     thrust = outputs(:, 1:3);
     B_M_f = outputs(:, 4:6);
@@ -251,6 +314,16 @@ function plotter(t, r, dydt, y, inputs, outputs, refs, projectpath, foldername, 
     beta = refs(:, 16:18);
     %tilde_mu = outputs(:, 26:28);
     tilde_mu = zeros([length(y) 3]);
+
+    % details
+    P_prop = rho * prop_d^4 * [CT_u CT_l; prop_d * CP_u -prop_d * CP_l];
+    vtheta = reshape(y(:, 19:18 + 6 * n), [length(y) 6 n]);
+    wm = vtheta(:, 1:2, :);
+    a = vtheta(:, 3, :);
+    b = vtheta(:, 4, :);
+
+    TfTd = pagemtimes(P_prop, permute(wm .* wm, [2 1 3]));
+    Tf = reshape(TfTd(1, :, :), [length(y) n]);
 
     % Rotational
     if rotation_matrix == true
@@ -278,21 +351,21 @@ function plotter(t, r, dydt, y, inputs, outputs, refs, projectpath, foldername, 
     value = {projectpath, foldername, filename, lineStyle, markerStyle};
     options = containers.Map(key, value);
 
-    %plot_3d(t, r, P, CoP, traj, thrust, R, options);
     plot_state(t, P, dP, traj, W, beta, eulZXY, attitude_d, options);
     plot_error(t, P, dP, traj, W, beta, eulZXY, attitude_d, tilde_mu, options);
-    %plot_command(t, Tf, u, options);
+
     plot_command_6dof(t, u, options)
-    %plot_norm(t, dP, P, traj, eulZXY, attitude_d, W, beta, theta1, theta_a, options);
+    plot_norm(t, dP, P, traj, eulZXY, attitude_d, W, beta, [], [], options);
     plot_torque(t, B_M_f, B_M_d, B_M_g, B_M_a, options);
-    %plot_motor_command(t, w_m1, w_m2, xi, eta, xi_d, eta_d, options);
-    %plot_estimation(t, theta1, theta2, theta3, theta_a, theta_b, options);
-    %plot_animation(t, r, P, traj, options, R);
+
+    plot_metrics(t, metrics(:, 1), metrics(:, 2), metrics(:, 3), options);
+    plot_constraints_profile(params, a, b, Tf, t, (t(end) - t(1)) / length(y), options);
 
     plot_swarm_animation(t, r, P, traj, options, R, thrust);
-    %plot_swarm_3d(t, r, P, CoP, traj, thrust, R, options);
+    plot_swarm_3d(t, r, P, CoP, traj, thrust, R, options);
 end
 
+%% plotting
 function plot_swarm_3d(t, r, P, CoP, traj, thrust, R, options)
     figure
     scatter3(P(r, 1), P(r, 2), P(r, 3), 40, t(r)); hold on
@@ -326,8 +399,8 @@ function plot_swarm_3d(t, r, P, CoP, traj, thrust, R, options)
 end
 
 function plot_swarm_animation(t, r, P, traj, options, R, thrust)
-    warning('off', 'MATLAB:hg:ColorSpec_None')
     figure('Position', [10 10 1200 1200])
+    warning('off', 'MATLAB:hg:ColorSpec_None')
     set(gca, 'DataAspectRatio', [1 1 1])
     animation_name = strcat(options('projectpath'), options('foldername'), options('filename'), '_3d.gif');
 
@@ -378,6 +451,7 @@ function plot_command_6dof(t, u, options)
     plot(t, u(:, 2), 'LineStyle', '-', 'DisplayName', 'u_y', 'Color', '#D95319', 'LineWidth', 2); hold on
     plot(t, u(:, 3), 'LineStyle', '-', 'DisplayName', 'u_z', 'Color', '#EDB120', 'LineWidth', 2); hold on
     ylabel('N')
+    legend()
     title('Forces')
 
     subplot(2, 1, 2);
@@ -386,9 +460,9 @@ function plot_command_6dof(t, u, options)
     plot(t, u(:, 6), 'LineStyle', '-', 'DisplayName', '\tau_z', 'Color', '#EDB120', 'LineWidth', 2); hold on
     ylabel('Nm')
     xlabel('time')
+    legend()
     title('Moments')
 
-    legend()
     sgtitle('Command profile')
     saveas(gcf, strcat(options('projectpath'), options('foldername'), options('filename'), '_command.svg'));
     saveas(gcf, strcat(options('projectpath'), options('foldername'), options('filename'), '_command.fig'));
