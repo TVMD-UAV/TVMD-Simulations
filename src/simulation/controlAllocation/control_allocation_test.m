@@ -9,7 +9,7 @@ addpath('system_func')
 
 %% Configurations
 [key, conf] = get_conf1();
-P = conf('p');
+P = conf('pos');
 psi = conf('psi');
 sigma_a = conf('sigma_a');
 sigma_b = conf('sigma_b');
@@ -62,8 +62,21 @@ for i = 1:n_sample
 end
 
 %% Plotters
+projectpath = 'H:\\.shortcut-targets-by-id\\1_tImZc764OguGZ7irM7kqDx9_f6Tdqwi\\National Taiwan University\\Research\\Multidrone\\VTswarm\\src\\simulation\\model\\outputs\\0920\\control_allocation\\';
+foldername = 'test\\';
+filename = 'allocation_test';
+dirname = strcat(projectpath, foldername);
+
+if not(isfolder(dirname))
+    mkdir(dirname)
+end
+
+key = {'projectpath', 'foldername', 'filename'};
+value = {projectpath, foldername, filename};
+options = containers.Map(key, value);
+
 plot_output_profile(t, u, vecs);
 plot_error_profile(t, u, vecs);
-plot_metrics(t, te, ef, em);
+plot_metrics(t, te, ef, em, options);
 plot_constraints(conf, as, bs, Fs, dt)
-plot_constraints_profile(conf, as, bs, Fs, t, dt)
+plot_constraints_profile(conf, as, bs, Fs, t, dt, options)
