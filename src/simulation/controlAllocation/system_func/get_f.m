@@ -6,7 +6,7 @@
 % F: force magnitude, n x 1 vector
 %
 %% ===================================
-function Fi = get_f(xi, eta, F)
+function Fi = get_f(eta, xi, F)
 
     if length(eta) == 1
         Fi = [(sin(xi) .* F);
