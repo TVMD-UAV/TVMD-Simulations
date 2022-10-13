@@ -1,5 +1,5 @@
 function [a, b, F] = allocator_redistributed_nonlinear(t_d, conf, a0, b0, f0, W, dt)
-    draw = true;
+    draw = false;
     %% Configurations
     P = conf('pos');
     psi = conf('psi');

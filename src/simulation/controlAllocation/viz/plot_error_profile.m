@@ -6,7 +6,7 @@
 % vecs: output vector, 6 x T matrix
 %
 %% ===================================
-function plot_error_profile(t, u, vecs)
+function plot_error_profile(t, u, vecs, options)
     figure('Position', [10 10 800 800])
     subplot(6, 1, 1);
     plot(t, (vecs(1, :) - u(1, :)), 'DisplayName', '$$F_x$$', 'LineWidth', 2, 'LineStyle', '--', 'Color', '#0072BD', 'marker', 'o');
@@ -34,4 +34,6 @@ function plot_error_profile(t, u, vecs)
     plot(t, (vecs(6, :) - u(6, :)), 'DisplayName', '$$M_z$$', 'LineWidth', 2, 'LineStyle', '--', 'Color', '#EDB120', 'marker', 'o');
     ylabel('$M_z$', 'interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', 12)
 
+    saveas(gcf, strcat(options('projectpath'), options('foldername'), options('filename'), '_error.svg'));
+    saveas(gcf, strcat(options('projectpath'), options('foldername'), options('filename'), '_error.fig'));
 end
