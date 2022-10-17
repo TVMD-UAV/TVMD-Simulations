@@ -1,4 +1,4 @@
-function [a, b, F] = allocator_redistributed_nonlinear(t_d, conf, a0, b0, f0, W, dt)
+function [a, b, F, u] = allocator_redistributed_nonlinear(t_d, conf, a0, b0, f0, W, dt)
     draw = false;
     %% Configurations
     P = conf('pos');
@@ -184,12 +184,24 @@ function [a, b, F] = allocator_redistributed_nonlinear(t_d, conf, a0, b0, f0, W,
         end
 
         u0 = u0 + d * u_delta;
-
         c = c + d;
-        % return
+
+        % Checking
+        if draw
+            uo = M * u0;
+            fprintf("d=%.2f, c=%.2f, ", d, c);
+            [ef, em, df, dm] = output_error(t_d, uo);
+            [f1, a1, b1] = inverse_input(uo);
+            tef = thrust_efficiency(a1, b1, f1);
+
+            fprintf("[%.4f, %.4f, %.4f, %.4f, %.4f, %.4f], ", uo(1), uo(2), uo(3), uo(4), uo(5), uo(6));
+            fprintf("tef= \t%.4f, ef= \t%.4f, em= \t%.4f, df= \t%.4f, dm= \t%.4f \n", tef, ef, em, df, dm);
+        end
+
     end
 
     [F, a, b] = inverse_input(u0);
+    u = full_dof_mixing(P, psi, a, b, F);
 end
 
 function tf = get_tf_from_u(u, n)
