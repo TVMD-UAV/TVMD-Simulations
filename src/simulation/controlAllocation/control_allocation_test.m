@@ -74,9 +74,6 @@ for i = 1:n_sample
 end
 
 %% Plotters
-projectpath = 'H:\\.shortcut-targets-by-id\\1_tImZc764OguGZ7irM7kqDx9_f6Tdqwi\\National Taiwan University\\Research\\Multidrone\\VTswarm\\src\\simulation\\model\\outputs\\1012_redistributed_alg\\';
-foldername = 'test\\';
-filename = 'allocation_test';
 dirname = strcat(projectpath, foldername);
 
 if not(isfolder(dirname))
