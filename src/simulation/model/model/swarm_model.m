@@ -22,6 +22,7 @@ function [dydt, commands, meta, vec] = swarm_model(params, F_d, a_d, b_d, y)
     r_sigma_b = params('r_sigma_b');
     f_max = params('f_max');
     r_f = params('r_f');
+    prop_max = params('prop_max');
 
     % Drone
     m = params('m');
@@ -67,14 +68,28 @@ function [dydt, commands, meta, vec] = swarm_model(params, F_d, a_d, b_d, y)
 
         % Motor models
         d_wmi = -pKp * wm + pKp * wm_d;
-        d_wmi = min(r_f, max(- r_f, d_wmi));
         d_wsi = A_motor * ws + B_motor * wsi_d;
+
+        wm = min(prop_max, max(0, wm));
+
+        % Rate constraint
+        r_prop_max = sqrt(inv(beta_allo) / (rho * prop_d^4)) * [r_f / (2 * sqrt(F_d(i))); 0];
+
+        d_wmi = min(r_prop_max, max(- r_prop_max, d_wmi));
+        reaching_bound_w = ((wm < 0) & (d_wmi < 0)) | ((wm > prop_max) & (d_wmi > 0));
+        d_wmi = (~reaching_bound_w) .* d_wmi;
+
         d_wsi(1:2) = min([r_sigma_a; r_sigma_b], max(- [r_sigma_a; r_sigma_b], d_wsi(1:2)));
+        reaching_bound_a = ((ws(1) < -sigma_a) && (d_wsi(1) < 0)) || ((ws(1) > sigma_a) && (d_wsi(1) > 0));
+        reaching_bound_b = ((ws(2) < -sigma_b) && (d_wsi(2) < 0)) || ((ws(2) > sigma_b) && (d_wsi(2) > 0));
+        d_wsi(1) = (~reaching_bound_a) * d_wsi(1);
+        d_wsi(2) = (~reaching_bound_b) * d_wsi(2);
 
         dm(6 * (i - 1) + 1:6 * i) = [d_wmi; d_wsi];
 
         % parsing
         TfTd = P_prop * (wm.^2);
+        % F(i) = min(f_max, max(0, TfTd(1)));
         F(i) = TfTd(1);
         a(i) = min(sigma_a, max(-sigma_a, ws(1))); % eta
         b(i) = min(sigma_b, max(-sigma_b, ws(2))); % xi
