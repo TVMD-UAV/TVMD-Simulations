@@ -5,16 +5,20 @@ function [key, params] = get_conf1()
         -1 1 0 -1 1 -1 1 -2 0 2;
         0 0 0 0 0 0 0 0 -1 0] * GRID_SIZE;
     psi = [0 0 0 0 0 0 0 0 0 0];
+    % p = [1 1 -1 -1;
+    %     -1 1 -1 1;
+    %     0 0 0 0] * GRID_SIZE;
+    % psi = [0 0 0 0];
 
     sigma_a = pi / 6;
-    sigma_b = pi / 2;
+    sigma_b = 0.7 * pi / 2;
 
     % rate of actuator
-    r_sigma_a = 1 * pi / 6; % eta, x-axis
-    r_sigma_b = 1 * pi / 2; % xi, y-axis
+    r_sigma_a = 10 * pi / 6; % eta, x-axis
+    r_sigma_b = 10 * pi / 2; % xi, y-axis
 
     f_max = 1.5;
-    r_f = 10;
+    r_f = 50;
 
     key = {'pos', 'psi', 'sigma_a', 'sigma_b', 'r_sigma_a', 'r_sigma_b', 'f_max', 'r_f'};
     value = {p, psi, sigma_a, sigma_b, r_sigma_a, r_sigma_b, f_max, r_f};

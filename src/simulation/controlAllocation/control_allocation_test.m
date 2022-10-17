@@ -7,6 +7,10 @@ addpath('evaluation')
 addpath('params')
 addpath('system_func')
 
+projectpath = 'H:\\.shortcut-targets-by-id\\1_tImZc764OguGZ7irM7kqDx9_f6Tdqwi\\National Taiwan University\\Research\\Multidrone\\VTswarm\\src\\simulation\\model\\outputs\\1012_redistributed_alg\\';
+foldername = 'chirp_interior\\';
+filename = 'allocation_test';
+
 %% Configurations
 [key, conf] = get_conf1();
 P = conf('pos');
@@ -79,6 +83,9 @@ if not(isfolder(dirname))
     mkdir(dirname)
 end
 
+matfilename = strcat(projectpath, foldername, filename);
+save(matfilename, 'conf', 't', 'u', 'vecs', 'te', 'ef', 'em', 'df', 'dm', 'as', 'bs', 'Fs');
+
 key = {'projectpath', 'foldername', 'filename'};
 value = {projectpath, foldername, filename};
 options = containers.Map(key, value);
@@ -87,4 +94,4 @@ plot_output_profile(t, u, vecs, options);
 plot_error_profile(t, u, vecs, options);
 plot_metrics(t, te, ef, em, df, dm, options);
 % plot_constraints(conf, as, bs, Fs, dt)
-plot_constraints_profile(conf, as', bs', Fs', t, dt, options)
+plot_constraints_profile(conf, as', bs', Fs', t', dt, options)

@@ -73,7 +73,7 @@ function plot_constraints_profile(conf, a, b, F, t, dt, options)
     subplot(3, 1, 1);
 
     for i = 1:n
-        scatter(t(2:end), (F(2:end, i) - F(1:end - 1, i)) ./ (t(2:end) - t(1:end - 1))', [], ones([n_sample - 1 1]) * i, 'Marker', '.'); hold on
+        scatter(t(2:end), (F(2:end, i) - F(1:end - 1, i)) ./ (t(2:end) - t(1:end - 1)), [], ones([n_sample - 1 1]) * i, 'Marker', '.'); hold on
     end
 
     plot(xx, yy_f_ub, 'Color', '#BD0000', 'LineStyle', '--');
@@ -84,7 +84,7 @@ function plot_constraints_profile(conf, a, b, F, t, dt, options)
     subplot(3, 1, 2);
 
     for i = 1:n
-        scatter(t(2:end), (a(2:end, i) - a(1:end - 1, i)) ./ (t(2:end) - t(1:end - 1))', [], ones([n_sample - 1 1]) * i, 'Marker', '.'); hold on
+        scatter(t(2:end), (a(2:end, i) - a(1:end - 1, i)) ./ (t(2:end) - t(1:end - 1)), [], ones([n_sample - 1 1]) * i, 'Marker', '.'); hold on
     end
 
     plot(xx, yy_a_ub, 'Color', '#BD0000', 'LineStyle', '--');
@@ -95,7 +95,7 @@ function plot_constraints_profile(conf, a, b, F, t, dt, options)
     subplot(3, 1, 3);
 
     for i = 1:n
-        scatter(t(2:end), (b(2:end, i) - b(1:end - 1, i)) ./ (t(2:end) - t(1:end - 1))', [], ones([n_sample - 1 1]) * i, 'Marker', '.'); hold on
+        scatter(t(2:end), (b(2:end, i) - b(1:end - 1, i)) ./ (t(2:end) - t(1:end - 1)), [], ones([n_sample - 1 1]) * i, 'Marker', '.'); hold on
     end
 
     plot(xx, yy_b_ub, 'Color', '#BD0000', 'LineStyle', '--');
