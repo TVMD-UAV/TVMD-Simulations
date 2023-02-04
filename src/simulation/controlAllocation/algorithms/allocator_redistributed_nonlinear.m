@@ -21,6 +21,27 @@ function [a, b, F, u] = allocator_redistributed_nonlinear(t_d, conf, a0, b0, f0,
     c = 0;
 
     % Assuming u0 is feasible
+    [al0, bl0, fl0, u_d] = allocator_moore_penrose(t_d, conf);
+    a_m_max = min(sigma_a, a0 + r_sigma_a * dt);
+    a_m_min = max(-sigma_a, a0 - r_sigma_a * dt);
+    b_m_max = min(sigma_b, b0 + r_sigma_b * dt);
+    b_m_min = max(-sigma_b, b0 - r_sigma_b * dt);
+    tf_m_max = min(f_max, f0 + r_f * dt);
+    tf_m_min = max(0, f0 - r_f * dt);
+
+    al0 = min(a_m_max, max(a_m_min, al0));
+    bl0 = min(b_m_max, max(b_m_min, bl0));
+    fl0 = min(tf_m_max, max(tf_m_min, fl0));
+    N_esp = (a_m_min < al0) & (al0 < a_m_max) & ...
+            (b_m_min < bl0) & (bl0 < b_m_max) & ...
+            (tf_m_min < fl0) & (fl0 < tf_m_max);
+    % [a_m_min al0 a_m_max;
+    % b_m_min bl0 b_m_max;
+    % tf_m_min fl0 tf_m_max]
+    % N_esp
+    a0 = al0; b0 = bl0; f0 = fl0;
+
+    % Using previous state
     u0 = get_f(a0, b0, f0);
     t0 = full_dof_mixing(P, psi, a0, b0, f0);
     t_delta = t_d - t0;
@@ -60,11 +81,17 @@ function [a, b, F, u] = allocator_redistributed_nonlinear(t_d, conf, a0, b0, f0,
         bb = reshape([b0 + dbn b0 + dbn b0 + dbp b0 + dbp]', [4 * n 1]);
         fs = reshape(get_f(aa, bb, f_max), [3, 4, n]);
 
+        [eta_int, xi_int, R_int, F_int] = allocator_interior_point(t_d, W, conf, a0, b0, f0);
+        u_int = get_f(eta_int, xi_int, F_int);
+        u_int = reshape(u_int, [3 n]);
+
         for i = 1:n
             subplot(2, n / 2, i);
             quiver3(0, 0, 0, u_xyz(1, i), u_xyz(2, i), u_xyz(3, i), 'Color', '#000000', 'LineWidth', 2, 'AutoScale', 'off'); hold on
             quiver3(u_xyz(1, i), u_xyz(2, i), u_xyz(3, i), ...
                 moore_xyz(1, i), moore_xyz(2, i), moore_xyz(3, i), 'Color', '#0000AA', 'LineWidth', 1, 'AutoScale', 'off'); hold on
+
+            quiver3(0, 0, 0, u_int(1, i), u_int(2, i), u_int(3, i), 'Color', '#00AAAA', 'LineWidth', 1, 'AutoScale', 'off'); hold on
 
             % Plot original moore penrose result
             mdo = M_esp_dag * t_delta + u0;
@@ -109,6 +136,8 @@ function [a, b, F, u] = allocator_redistributed_nonlinear(t_d, conf, a0, b0, f0,
 
     % end region [boundary visualization]
 
+    c_idx = 1;
+    cmap = jet(8);
     % Iteration
     while (c < 1) && (rank(M_esp) >= 6)
         % Calculate
@@ -173,7 +202,7 @@ function [a, b, F, u] = allocator_redistributed_nonlinear(t_d, conf, a0, b0, f0,
             for i = 1:n
                 subplot(2, n / 2, i);
                 quiver3(u0(3 * i - 2), u0(3 * i - 1), u0(3 * i), ...
-                    d * v_delta(1, i), d * v_delta(2, i), d * v_delta(3, i), 'Color', '#AA0000', 'LineWidth', 2, 'AutoScale', 'off'); hold on
+                    d * v_delta(1, i), d * v_delta(2, i), d * v_delta(3, i), 'Color', cmap(c_idx, :), 'LineWidth', 2, 'AutoScale', 'off'); hold on
                 scatter3(ub(1, i), ub(2, i), ub(3, i), 10, 'black'); hold on
                 % scatter3(ub_x(1, i), ub_x(2, i), ub_x(3, i), 10, 'red'); hold on
                 % scatter3(ub_x2(1, i), ub_x2(2, i), ub_x2(3, i), 10, 'red'); hold on
@@ -189,15 +218,17 @@ function [a, b, F, u] = allocator_redistributed_nonlinear(t_d, conf, a0, b0, f0,
         % Checking
         if draw
             uo = M * u0;
-            fprintf("d=%.2f, c=%.2f, ", d, c);
+            fprintf("d=%.2f, c=%.2f, sat=%#d,\t", d, c, i_star);
             [ef, em, df, dm] = output_error(t_d, uo);
             [f1, a1, b1] = inverse_input(uo);
             tef = thrust_efficiency(a1, b1, f1);
 
-            fprintf("[%.4f, %.4f, %.4f, %.4f, %.4f, %.4f], ", uo(1), uo(2), uo(3), uo(4), uo(5), uo(6));
-            fprintf("tef= \t%.4f, ef= \t%.4f, em= \t%.4f, df= \t%.4f, dm= \t%.4f \n", tef, ef, em, df, dm);
+            fprintf("[%.4f, %.4f, %.4f, %.4f, %.4f, %.4f],", uo(1), uo(2), uo(3), uo(4), uo(5), uo(6));
+            fprintf(" \ttef=%.4f,\tef=%.4f,\tem=%.4f,\tdf=%.4f,\tdm=%.4f \n", tef, ef, em, df, dm);
         end
 
+        c_idx = c_idx + 1;
+        % pause
     end
 
     [F, a, b] = inverse_input(u0);

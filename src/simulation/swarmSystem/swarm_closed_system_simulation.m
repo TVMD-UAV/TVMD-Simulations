@@ -94,7 +94,7 @@ function [dydt, inputs, outputs, refs, metrics] = drone_fly(t, y, mode)
     global T progress;
     [key, params] = get_swarm_params();
     n = length(params('psi'));
-    dt = 1;
+    dt = 0.001;
 
     traj = TrajectoryPlanner(t);
     %traj = RegulationTrajectory();
@@ -106,7 +106,7 @@ function [dydt, inputs, outputs, refs, metrics] = drone_fly(t, y, mode)
     [a0, b0, f0] = get_motor_state(params, n, y);
 
     % region [nullspace]
-    %[a0, b0, f0, u_d] = allocator_moore_penrose([u_t; 0;0;0], params);
+    % [a0, b0, f0, u_d] = allocator_moore_penrose([u_t; 0;0;0], params);
     % [al0, bl0, fl0, u_d] = allocator_moore_penrose([u_t; u_m], params);
     % [al0, bl0, fl0] = output_saturation2(params, n, al0, bl0, fl0);
     % [a_d, b_d, F_d, x, u_d] = allocator_nullspace([u_t; u_m], params, fl0, al0, bl0, dt);
@@ -114,9 +114,19 @@ function [dydt, inputs, outputs, refs, metrics] = drone_fly(t, y, mode)
     % dist_s = [min(s); mean(s); max(s)];
     % end region [nullspace]
 
-    [a_d, b_d, R, F_d, u_d] = allocator_interior_point([u_t; u_m], W, params);
+    % [a_d, b_d, R, F_d, u_d] = allocator_interior_point([u_t; u_m], W, params, a0, b0, f0);
     % [a_d, b_d, F_d, u_d] = allocator_moore_penrose([u_t; u_m], params);
+
+    % region [Redistributed Moore]
+    % [al0, bl0, fl0] = output_saturation(params, n, al0, bl0, fl0, a0, b0, f0, dt);
+    [al0, bl0, fl0, u_d] = allocator_moore_penrose([u_t; u_m], params);
+    [al0, bl0, fl0] = output_saturation2(params, n, al0, bl0, fl0);
+    [a_d, b_d, F_d, u_d] = allocator_redistributed_nonlinear([u_t; u_m], params, al0, bl0, fl0, W, dt);
+    % end region [Redistributed Moore]
+
+    % Redistributed
     % [a_d, b_d, F_d, u_d] = allocator_redistributed_nonlinear([u_t; u_m], params, a0, b0, f0, W, dt);
+
     dist_s = [0; 0; 0];
     a = a_d; b = b_d; F = F_d;
 
