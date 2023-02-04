@@ -135,7 +135,7 @@ function [dydt, inputs, outputs, refs, metrics] = drone_fly(t, y, mode)
     dist_s = [0; 0; 0];
     a = a_d; b = b_d; F = F_d;
 
-    [dydt, commands, meta, u] = swarm_model(params, F, a, b, y);
+    [dydt, commands, meta, u] = swarm_model(params, t, F, a, b, y);
 
     te = thrust_efficiency(a, b, F);
     [ef, em, df, dm] = output_error([u_t; u_m], u);

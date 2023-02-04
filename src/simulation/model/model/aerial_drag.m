@@ -18,8 +18,8 @@ function [F_d, M_d] = aerial_drag(params, u, y, using_so3)
     end
 
     %% Aerial Dynamics
-    F_drag = norm(v_w - dP)*R*C_d*R'*(v_w - dP);
-    F_ram = sqrt(u(1)*rho*A_cs/2)*R*I_xy*R'*(v_w - dP);
+    F_drag = norm(v_w - dP) * R * C_d * R' * (v_w - dP);
+    F_ram = sqrt(u(1) * rho * A_cs / 2) * R * I_xy * R' * (v_w - dP);
     F_d = F_drag + F_ram;
-    M_d = esp_M*skew([0;0;1])*R'*F_d;
+    M_d = esp_M * skew([0; 0; 1]) * R' * F_d;
 end

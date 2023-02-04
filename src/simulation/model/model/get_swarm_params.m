@@ -37,11 +37,11 @@ function [key, params] = get_swarm_params()
     delta_a = 5;
     delta_b = 3;
 
-    v_w = [-1; -1; 0];
-    C_d = diag([0.01 0.01 0.005]);
+    v_w = [2; 2; 0];
+    C_d = diag([1 1 0.5]);
     I_xy = diag([1 1 0]);
-    A_cs = 0.114;
-    esp_M = 0.01;
+    A_cs = 0.114 * 10;
+    esp_M = 0.1;
 
     GRID_SIZE = 0.5 * sqrt(2) / 2;
     pos = [-1 1 0 -1 1 -1 1 -2 0 2;

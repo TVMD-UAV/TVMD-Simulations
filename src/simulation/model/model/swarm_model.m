@@ -1,6 +1,6 @@
 % u: the [F a b] command for individual agent
 % y: state
-function [dydt, commands, meta, vec] = swarm_model(params, F_d, a_d, b_d, y)
+function [dydt, commands, meta, vec] = swarm_model(params, t, F_d, a_d, b_d, y)
     %% Parameters
     g = params('g'); % gravity
     rho = params('rho'); % kg/m3
@@ -98,14 +98,23 @@ function [dydt, commands, meta, vec] = swarm_model(params, F_d, a_d, b_d, y)
     % get total control input
     vec = full_dof_mixing(pos, psi, a, b, F);
 
+    if t > 20 && t < 3
+        v_w = [3; 3; 0];
+    else
+        v_w = [0; 0; 0];
+    end
+    params('v_w') = v_w;
+    [F_dist, M_dist] = aerial_drag(params, norm(vec(1:3)), y, true);
+    % F_dist = 0; M_dist = 0;
+
     %% Newton-Euler equation
     I_thrust = Q * vec(1:3);
     B_M = -cross(W, I_b * W) + vec(4:6);
     B_M_f = vec(4:6);
     B_M_d = [0; 0; 0];
 
-    ddP = ([0; 0; -m * g] + I_thrust) / m;
-    dW = I_b \ B_M;
+    ddP = ([0; 0; -m * g] + I_thrust + F_dist) / m;
+    dW = I_b \ (B_M + M_dist);
     dQ = reshape(Q * skew(W), [9 1]);
 
     dydt = [dW; dQ; ddP; dP; dm];
