@@ -45,7 +45,12 @@ desire_t = matlabFunction(desire);
 
 % region [Initial conditions]
 %                              psi, phi, theta
-initial_orientation = getI_R_B(0, 0, 0);
+
+syms psi phi theta dpsi dphi dtheta
+R = getI_R_B(psi, phi, theta);
+d_R = diff(R, psi) * dpsi + diff(R, phi) * dphi + diff(R, theta) * dtheta;
+global d_R_ht
+d_R_ht = matlabFunction(d_R, 'Vars',[psi phi theta dpsi dphi dtheta]);
 
 W0 = [0 0 0]';
 R0 = reshape(eye(3) * initial_orientation, [9 1]);
@@ -98,9 +103,9 @@ function [dydt, inputs, outputs, refs, metrics] = drone_fly(t, y, mode)
 
     traj = TrajectoryPlanner(t);
     %traj = RegulationTrajectory();
-    %[u_t, u_m, attitude_d] = Controller(t, params, traj, y);
+    % [u_t, u_m, attitude_d] = Controller(params, traj, y);
     %[u_t, u_m, attitude_d] = Controller_MinimumSnap(t, params, traj, y);
-    [u_t, u_m, attitude_d] = Controller(params, traj, y);
+    [u_t, u_m, attitude_d] = ControllerFull(params, traj, y);
 
     W = diag(ones([n 1]));
     [a0, b0, f0] = get_motor_state(params, n, y);
@@ -138,7 +143,7 @@ function [dydt, inputs, outputs, refs, metrics] = drone_fly(t, y, mode)
     Q = reshape(y(4:12), [3 3]); % 3x3
     thrust = Q * u_t;
 
-    desire = reshape(traj', [12, 1]);
+    desire = reshape(traj', [18, 1]);
     inputs = [[u_t; u_m]; F_d; commands];
     outputs = [thrust; meta];
     refs = [desire; attitude_d'; [0; 0; 0]; dist_s];
@@ -240,10 +245,11 @@ end
 
 % endregion [Controller]
 
-% region [Controller_MinimumSnap]
-function [u_t, u, attitude_d] = Controller_MinimumSnap(t, params, traj, y)
+% region [ControllerFull]
+function [u_t, u, attitude_d] = ControllerFull(params, traj, y)
     m = params('m'); % Mass, Kg
     g = params('g');
+    I_b = params('I_b'); % Leverage length from c.p. to c.g.
 
     % States
     p = y(16:18);
@@ -252,37 +258,45 @@ function [u_t, u, attitude_d] = Controller_MinimumSnap(t, params, traj, y)
     w = y(1:3);
 
     % Gain
-    Kp = diag([0.25 1 1]) * 0.2 * 2;
-    Kd = diag([0.25 1 1]) * 0.5 * 2;
+    Kp = diag([1 1 1]) * 0.2 * 10;
+    Kd = diag([1 1 1]) * 0.5 * 10;
 
-    mu_d = traj(1:3, 3) + Kd * (traj(1:3, 2) - v) + Kp * (traj(1:3, 1) - p) + [0; 0; g];
-    psi_d = traj(4, 1);
+    % basis
+    e1 = [1;0;0]; e2 = [0;1;0]; e3 = [0;0;1]; 
 
-    % Trajectory control
-    u_t = mu_d' * R(1:3, 3);
-    z_B_d = mu_d / norm(mu_d);
-    x_C_d = [cos(psi_d); sin(psi_d); 0];
-    cross_z_x = cross(z_B_d, x_C_d);
-    y_B_d = cross_z_x / norm(cross_z_x);
-    x_B_d = cross(y_B_d, z_B_d);
+    % % Translational error
+    ep = p - traj(1:3, 1);
+    ev = v - traj(1:3, 2);
 
-    R_d = [x_B_d y_B_d z_B_d];
-    attitude_d = rot2zxy(R_d);
+    f_r = m * traj(1:3, 3) + m*[0; 0; g] + m * (- Kp * ep - Kd * ev);
+    u_t = [f_r' * R * e1; f_r' * R * e2; f_r' * R * e3];
+
+    psi_d = traj(6, 1); phi_d = traj(5, 1); theta_d = traj(4, 1);
+    R_d = getI_R_B(psi_d, phi_d, theta_d);
+    attitude_d = [psi_d, phi_d, theta_d];
+
+    global d_R_ht
+    % psi phi theta dpsi dphi dtheta
+    d_psi_d = traj(6, 2); d_phi_d = traj(5, 2); d_theta_d = traj(4, 2);
+    d_R_d = d_R_ht(psi_d, phi_d, theta_d, d_psi_d, d_phi_d, d_theta_d);
+    w_d = vee(R_d' * d_R_d);
 
     % Attitude error
     eRx = 0.5 * (R_d' * R - R' * R_d);
-    eR = [eRx(2, 3); eRx(3, 1); eRx(1, 2)];
-    eOmega = 0 - w;
+    eR = vee(eRx);
+    eOmega = w - R' * R_d * w_d;
+    % eOmega = w;
 
     % Attitude control
-    Kr = diag([0.25 1 1]) * 0.1 * 2;
-    Ko = diag([0.25 1 1]) * 0.05 * 2;
-    M_d =- Kr * eR - Ko * eOmega;
+    Kr = diag([1 1 1]) * 2 * 10;
+    Ko = diag([1 1 1]) * 0.5 * 10;
+
+    M_d = cross(w, I_b * w) + I_b * ( - Kr * eR - Ko * eOmega);
 
     u = M_d;
 end
 
-% endregion [Controller_MinimumSnap]
+% endregion [ControllerFull]
 
 % region [output_saturation]
 function [a, b, F] = output_saturation2(conf, n, a, b, F)
@@ -351,11 +365,11 @@ function plotter(params, t, r, dydt, y, inputs, outputs, refs, metrics, projectp
     B_M_d = outputs(:, 7:9);
     B_M_a = outputs(:, 10:12);
     B_M_g = outputs(:, 13:15);
-    traj = reshape(refs(:, 1:12), [length(y), 3, 4]);
+    traj = reshape(refs(:, 1:18), [length(y), 3, 6]);
     traj = permute(traj, [1, 3, 2]);
-    Q_d = refs(:, 13:15);
-    beta = refs(:, 16:18);
-    dist_s = refs(:, 19:21);
+    Q_d = refs(:, 19:21);
+    beta = refs(:, 22:24);
+    dist_s = refs(:, 25:27);
     %tilde_mu = outputs(:, 26:28);
     tilde_mu = zeros([length(y) 3]);
 
@@ -430,7 +444,11 @@ end
 % region [plot_swarm_3d]
 function plot_swarm_3d(t, r, P, CoP, traj, thrust, R, options)
     figure
-    scatter3(P(r, 1), P(r, 2), P(r, 3), 40, t(r)); hold on
+    % Draw desired trajectory
+    scatter3(traj(:, 1, 1), traj(:, 2, 1), traj(:, 3, 1), 4, "red"); hold on
+
+    % Draw positions
+    scatter3(P(:, 1), P(:, 2), P(:, 3), 2, 1 + 256 * t); hold on
     %quiver3(CoP(r, 1), CoP(r, 2), CoP(r, 3), thrust(r, 1), thrust(r, 2), thrust(r, 3), 'magenta')
 
     % Draw coordinates of the agent
@@ -440,9 +458,6 @@ function plot_swarm_3d(t, r, P, CoP, traj, thrust, R, options)
     q1.ShowArrowHead = 'off';
     q2.ShowArrowHead = 'off';
     q3.ShowArrowHead = 'off';
-
-    % Draw desired trajectory
-    scatter3(traj(r, 1, 1), traj(r, 2, 1), traj(r, 3, 1), "red", 'Marker', '.'); hold on
 
     % Draw agent body
     for i = 1:length(r)
