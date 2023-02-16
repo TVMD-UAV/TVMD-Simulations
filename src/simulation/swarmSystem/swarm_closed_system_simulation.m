@@ -33,8 +33,8 @@ global desire_t
 w0 = 2 * pi / 10;
 %                x,          y, z, psi
 %zeta = [10*ts; 30*sin(0.1*ts+3.48); 20*sin(0.1*ts+4.71); 0*ts];
-%zeta = [3 * sin(0.5 * ts); 2 * ts; 0 * ts; 0 * ts];
-zeta = [3 * sin(1 * ts); 2 * ts; 0 * ts; 0 * ts];
+zeta = [3 * sin(1 * ts); 2 * ts; 3 * sin(1 * ts); 0 * ts+0.1; 0 * ts; 0.1 * ts];
+% zeta = [3 * sin(0.5 * ts); 2 * ts; 0 * ts; 0 * ts];
 %zeta = [cos(w0*ts); sin(w0*ts); 0.1*ts; 0.1*ts];
 %zeta = [cos(w0*ts); sin(w0*ts); 1; 0];
 d_zeta = diff(zeta);
@@ -269,11 +269,15 @@ function [u_t, u, attitude_d] = ControllerFull(params, traj, y)
     ev = v - traj(1:3, 2);
 
     f_r = m * traj(1:3, 3) + m*[0; 0; g] + m * (- Kp * ep - Kd * ev);
-    u_t = [f_r' * R * e1; f_r' * R * e2; f_r' * R * e3];
+    % u_t = [f_r' * R * e1; f_r' * R * e2; f_r' * R * e3];
+    u_t = R' * f_r;
+    u_t = force_sat(params, u_t);
 
     psi_d = traj(6, 1); phi_d = traj(5, 1); theta_d = traj(4, 1);
-    R_d = getI_R_B(psi_d, phi_d, theta_d);
+    R_r = getI_R_B(psi_d, phi_d, theta_d);
     attitude_d = [psi_d, phi_d, theta_d];
+
+    R_d = calc_R_d(params, f_r, R_r);
 
     global d_R_ht
     % psi phi theta dpsi dphi dtheta
@@ -284,8 +288,8 @@ function [u_t, u, attitude_d] = ControllerFull(params, traj, y)
     % Attitude error
     eRx = 0.5 * (R_d' * R - R' * R_d);
     eR = vee(eRx);
-    eOmega = w - R' * R_d * w_d;
-    % eOmega = w;
+    % eOmega = w - R' * R_d * w_d;
+    eOmega = w;
 
     % Attitude control
     Kr = diag([1 1 1]) * 2 * 10;
@@ -296,6 +300,18 @@ function [u_t, u, attitude_d] = ControllerFull(params, traj, y)
     u = M_d;
 end
 
+function R_d = calc_R_d(conf, f_r, R_r)
+    b1r = R_r(:, 1);
+    b2r = R_r(:, 2);
+    b3r = R_r(:, 3);
+    [theta] = ctrl_sat_square_bisection(20, conf, b1r, b3r, f_r);
+
+    k = cross(b3r, f_r) / norm(cross(b3r, f_r));
+    nb3 = rot_vec_by_theta(b3r, k, theta);
+    nb2 = cross(nb3, b1r) / norm(cross(nb3, b1r));
+    nb1 = cross(nb2, nb3);
+    R_d = [nb1 nb2 nb3];
+end
 % endregion [ControllerFull]
 
 % region [output_saturation]
