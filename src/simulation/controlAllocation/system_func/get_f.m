@@ -1,22 +1,22 @@
 %% ===================================
 %
 % calculate forces output vector
-% eta: y-axis angles, n x 1 vector
-% xi: x-axis angles, n x 1 vector
-% F: force magnitude, n x 1 vector
+% a: x-axis angles, n x 1 vector
+% b: y-axis angles, n x 1 vector
+% f: force magnitude, n x 1 vector
 %
 %% ===================================
-function Fi = get_f(eta, xi, F)
+function Fi = get_f(a, b, tf)
 
-    if length(eta) == 1
-        Fi = [(sin(xi) .* F);
-            (-sin(eta) .* cos(xi) .* F);
-            (cos(eta) .* cos(xi) .* F)];
+    if length(a) == 1
+        Fi = [(cos(a) .* sin(b).* tf);
+            (-sin(a) .* tf);
+            (cos(a) .* cos(b) .* tf)];
     else
-        Fi = [(sin(xi') .* F');
-            (-sin(eta') .* cos(xi') .* F');
-            (cos(eta') .* cos(xi') .* F')];
-        n = length(eta);
+        Fi = [(cos(a') .* sin(b').* tf');
+            (-sin(a') .* tf');
+            (cos(a') .* cos(b') .* tf')];
+        n = length(a);
         Fi = reshape(Fi, [3 * n 1]);
     end
 

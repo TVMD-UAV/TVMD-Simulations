@@ -8,6 +8,6 @@ function [F, a, b] = inverse_input(Fi)
     n = length(Fi') / 3;
     Fi = reshape(Fi, [3, n]);
     F = sqrt(sum(Fi.^2, 1))';
-    a = atan2(-Fi(2, :), Fi(3, :))';
-    b = atan2(Fi(1, :), sqrt(Fi(2, :).^2 + Fi(3, :).^2))';
+    a = asin(-Fi(2, :)' ./ F);
+    b = atan2(Fi(1, :)' ./ cos(a), Fi(3, :)' ./ cos(a));
 end

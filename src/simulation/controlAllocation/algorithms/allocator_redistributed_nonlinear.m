@@ -99,23 +99,26 @@ function [a, b, F, u] = allocator_redistributed_nonlinear(t_d, conf, a0, b0, f0,
                 mdo(1, i), mdo(2, i), mdo(3, i), 'Color', '#00AA00', 'LineWidth', 1, 'AutoScale', 'off'); hold on
 
             % roof
-            funcx = @(a, b)f_max .* sin(b);
-            funcy = @(a, b) - f_max .* sin(a) .* cos(b);
-            funcz = @(a, b)f_max .* cos(a) .* cos(b);
-            fsurf(funcx, funcy, funcz, [a0(i) + dan(i) a0(i) + dap(i) b0(i) + dbn(i) b0(i) + dbp(i)], 'FaceColor', '#77AC30', 'FaceAlpha', 0.2, 'EdgeColor', 'none')
+            funcx = @(a, b, r) r .* cos(a) .* sin(b);
+            funcy = @(a, b, r) - r .* sin(a);
+            funcz = @(a, b, r) r .* cos(a) .* cos(b);
 
-            % positive x
-            funcx = @(r, b)r .* tan(sigma_b);
-            funcy = @(r, b)r .* sin(b);
-            funcz = @(r, b)r .* cos(b);
-            %fsurf(funcx, funcy, funcz, [0 f_max * 0.45 -sigma_a sigma_a], 'FaceColor', "#4DBEEE", 'FaceAlpha', 0.2, 'EdgeColor', 'none')
-            fsurf(funcx, funcy, funcz, [0 f_max * 0.45 a0(i) + dan(i) a0(i) + dap(i)], 'FaceColor', "#4DBEEE", 'FaceAlpha', 0.2, 'EdgeColor', 'none')
+            funcx_r = @(a, b) funcx(a, b, f_max); 
+            funcy_r = @(a, b) funcy(a, b, f_max); 
+            funcz_r = @(a, b) funcz(a, b, f_max); 
+            fsurf(funcx_r, funcy_r, funcz_r, [-sigma_a sigma_a -sigma_b sigma_b], 'FaceColor', '#77AC30', 'FaceAlpha', 0.2, 'EdgeColor', 'none'); hold on 
 
-            % negative x
-            funcx = @(r, b) - r .* tan(sigma_b);
-            funcy = @(r, b)r .* sin(b);
-            funcz = @(r, b)r .* cos(b);
-            fsurf(funcx, funcy, funcz, [0 f_max * 0.45 a0(i) + dan(i) a0(i) + dap(i)], 'FaceColor', "#4DBEEE", 'FaceAlpha', 0.2, 'EdgeColor', 'none')
+            % positive y
+            funcx_r = @(r, b) funcx(sigma_a, b, r); 
+            funcy_r = @(r, b) funcy(sigma_a, b, r); 
+            funcz_r = @(r, b) funcz(sigma_a, b, r); 
+            fsurf(funcx_r, funcy_r, funcz_r, [0 f_max -sigma_b sigma_b], 'FaceColor', "#4DBEEE", 'FaceAlpha', 0.2, 'EdgeColor', 'none'); hold on 
+
+            % negative y
+            funcx_r = @(r, b) funcx(-sigma_a, b, r); 
+            funcy_r = @(r, b) funcy(-sigma_a, b, r); 
+            funcz_r = @(r, b) funcz(-sigma_a, b, r); 
+            fsurf(funcx_r, funcy_r, funcz_r, [0 f_max -sigma_b sigma_b], 'FaceColor', "#4DBEEE", 'FaceAlpha', 0.2, 'EdgeColor', 'none'); hold on 
 
             for j = 1:4
                 plot3([0 fs(1, j, i)], [0 fs(2, j, i)], [0 fs(3, j, i)], 'Color', '#0072BD'); hold on

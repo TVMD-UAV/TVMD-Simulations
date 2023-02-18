@@ -57,8 +57,8 @@ function [dydt, commands, meta] = my_model(params, u, y)
     % Gyroscopic moment
     A_w_P = [0; 0; w_m1 - w_m2];
     B_w_A = [vartheta(3); vartheta(4); 0];
-    
-    B_R_A = Rx(eta) * Ry(xi);
+
+    B_R_A = Ry(xi) * Rx(eta);
     B_M_g = B_R_A * I_a * (cross(B_R_A' * B_w_A, A_w_P));
     B_M_a = 0 + B_R_A * I_a * B_R_A' * [dd_eta dd_xi 0]';
     B_I_a = B_R_A * I_a * B_R_A';

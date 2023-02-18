@@ -73,7 +73,7 @@ function [a, b, F, u] = allocator_null_redistr(t_d, conf, a0, b0, f0, W, dt)
 
         figure('Position', [10 10 1600 800])
         aa = reshape(ones([1 n]) .* [sigma_a -sigma_a -sigma_a sigma_a]', [4 * n 1]);
-        bb = reshape(ones([1 n]) .* [-sigma_b -sigma_b sigma_b sigma_b]' * 0.9, [4 * n 1]);
+        bb = reshape(ones([1 n]) .* [-sigma_b -sigma_b sigma_b sigma_b]', [4 * n 1]);
         fs = reshape(get_f(aa, bb, f_max), [3, 4, n]);
 
         f_xyz = reshape(f0, [3 n]);
@@ -142,7 +142,7 @@ function [a, b, F, u] = allocator_null_redistr(t_d, conf, a0, b0, f0, W, dt)
         
         % N_esp'
         % f_delta'
-        [d_max, i_star, N_esp, ti] = calc_nearest_c2(N_esp, f0, f0 + f_delta, sigma_a, sigma_b, f_max);
+        [d_max, i_star, N_esp, ti, tw] = calc_nearest_c2(N_esp, f0, f0 + f_delta, sigma_a, sigma_b, f_max);
 
         if d_max == inf
             break;
@@ -161,19 +161,18 @@ function [a, b, F, u] = allocator_null_redistr(t_d, conf, a0, b0, f0, W, dt)
             f_xyz = reshape(f0, [3 n]);
             f_delta_xyz = reshape(f_delta, [3 n]);
             ub = f_xyz + f_delta_xyz .* ([1 1 1]' * ti');
-            % ub_x = f_xyz + f_delta_xyz .* ([1 1 1]' * tx');
-            % ub_y = f_xyz + f_delta_xyz .* ([1 1 1]' * ty');
-            % ub_z = f_xyz + f_delta_xyz .* ([1 1 1]' * tz');
+            ub_x = f_xyz + f_delta_xyz .* ([1 1 1]' * tw(:, 1)');
+            ub_y = f_xyz + f_delta_xyz .* ([1 1 1]' * tw(:, 2)');
+            ub_z = f_xyz + f_delta_xyz .* ([1 1 1]' * tw(:, 3)');
 
             for i = 1:n
                 subplot(2, n / 2, i);
                 quiver3(f0(3 * i - 2), f0(3 * i - 1), f0(3 * i), ...
                     d * f_delta_xyz(1, i), d * f_delta_xyz(2, i), d * f_delta_xyz(3, i), 'Color', cmap(c_idx, :), 'LineWidth', 2, 'AutoScale', 'off'); hold on
                 scatter3(ub(1, i), ub(2, i), ub(3, i), 10, 'black'); hold on
-                % scatter3(ub_x(1, i), ub_x(2, i), ub_x(3, i), 10, 'red'); hold on
-                % scatter3(ub_x2(1, i), ub_x2(2, i), ub_x2(3, i), 10, 'red'); hold on
-                % scatter3(ub_y(1, i), ub_y(2, i), ub_y(3, i), 10, 'green'); hold on
-                % scatter3(ub_z(1, i), ub_z(2, i), ub_z(3, i), 10, 'blue'); hold on
+                scatter3(ub_x(1, i), ub_x(2, i), ub_x(3, i), 10, 'red'); hold on
+                scatter3(ub_y(1, i), ub_y(2, i), ub_y(3, i), 10, 'green'); hold on
+                scatter3(ub_z(1, i), ub_z(2, i), ub_z(3, i), 10, 'blue'); hold on
             end
 
         end
@@ -285,7 +284,7 @@ function [f0, N_esp] = sat(conf, f)
 end
 % end region [sat]
 
-function [c_star, i_star, N_esp, ti] = calc_nearest_c2(N_esp, u0, ud, sigma_a, sigma_b, f_max)
+function [c_star, i_star, N_esp, ti, tw] = calc_nearest_c2(N_esp, u0, ud, sigma_a, sigma_b, f_max)
     % u0: allocation result in previous step
     % ud: temporary target
 
@@ -336,27 +335,32 @@ end
 function tw = solve_intersections(u_xyz, u_delta_xyz, a_s, b_s, f_max)
     % a_s: bound of a (pos / neg sigmal_a, according to the direction of delta)
     % b_s: bound of a (pos / neg sigmal_b, according to the direction of delta)
-    v_delta_x = u_delta_xyz(1, :) ./ (tan(b_s)');
-    v_xyz_x = u_xyz(1, :) ./ (tan(b_s)');
+    v_delta_y = u_delta_xyz(2, :) ./ (tan(a_s)');
+    v_xyz_y = u_xyz(2, :) ./ (tan(a_s)');
     v_norm = vecnorm(u_delta_xyz, 2, 1)';
     tf0 = vecnorm(u_xyz, 2, 1)';
 
     % x-axis
-    txa = u_delta_xyz(2, :)'.^2 + u_delta_xyz(3, :)'.^2 - v_delta_x'.^2;
-    txb = u_xyz(2, :)' .* u_delta_xyz(2, :)' + u_xyz(3, :)' .* u_delta_xyz(3, :)' - v_xyz_x' .* v_delta_x';
-    txc = u_xyz(2, :)'.^2 + u_xyz(3, :)'.^2 - v_xyz_x'.^2;
+    txa = u_delta_xyz(1, :)'.^2 + u_delta_xyz(3, :)'.^2 - v_delta_y'.^2;
+    txb = u_xyz(1, :)' .* u_delta_xyz(1, :)' + u_xyz(3, :)' .* u_delta_xyz(3, :)' - v_xyz_y' .* v_delta_y';
+    txc = u_xyz(1, :)'.^2 + u_xyz(3, :)'.^2 - v_xyz_y'.^2;
     tx = (-txb - sqrt(txb.^2 - txa .* txc)) ./ txa;
-    tx(imag(tx) ~= 0) = inf;
+    
+    txl = -txc ./ (2 * txb);
+    mask_a_small = abs(txa) < 1e-10;
+    mask_no_sol = txb.^2 - txa .* txc < 0;
+    tx(mask_a_small) = txl(mask_a_small);
+    tx(mask_no_sol) = inf;
 
     % y-axis
-    ty = (-u_xyz(2, :)' - u_xyz(3, :)' .* tan(a_s)) ./ (u_delta_xyz(2, :)' + u_delta_xyz(3, :)' .* tan(a_s));
+    ty = -(u_xyz(1, :)' - u_xyz(3, :)' .* tan(b_s)) ./ (u_delta_xyz(1, :)' - u_delta_xyz(3, :)' .* tan(b_s));
 
     % z-axis
     kkb = dot(u_xyz, u_delta_xyz, 1)' ./ v_norm.^2;
     kkc = (tf0 .* tf0 - f_max^2) ./ v_norm.^2;
     tz = -kkb + sqrt(kkb .* kkb - kkc);
 
-    tw = [tx, ty, tz];
+    tw = [tx ty tz];
 end
 
 function tf = get_tf_from_u(u, n)
