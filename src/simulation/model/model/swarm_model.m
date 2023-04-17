@@ -50,8 +50,8 @@ function [dydt, commands, meta, vec] = swarm_model(params, t, F_d, a_d, b_d, y)
     C_motor = [1 0 0 0; 0 1 0 0];
 
     % Propeller model
-    P_prop = rho * prop_d^4 * [CT_u CT_l; prop_d * CP_u -prop_d * CP_l];
     beta_allo = [CT_u CT_l; prop_d * CP_u -prop_d * CP_l];
+    P_prop = rho * prop_d^4 * beta_allo;
 
     dm = zeros([6 * n 1]);
     F = zeros([n 1]);
@@ -73,10 +73,10 @@ function [dydt, commands, meta, vec] = swarm_model(params, t, F_d, a_d, b_d, y)
         wm = min(prop_max, max(0, wm));
 
         % Rate constraint
-        r_prop_max = sqrt(inv(beta_allo) / (rho * prop_d^4)) * [r_f / (2 * sqrt(F_d(i))); 0];
+        r_prop_max = sqrt(inv(beta_allo) / (rho * prop_d^4)) * [r_f / (2 * sqrt(abs(F_d(i)))); 0];
 
-        d_wmi = min(r_prop_max, max(- r_prop_max, d_wmi));
-        reaching_bound_w = ((wm < 0) & (d_wmi < 0)) | ((wm > prop_max) & (d_wmi > 0));
+        d_wmi = min(r_prop_max, max(-r_prop_max, d_wmi));
+        reaching_bound_w = ((wm <= 0) & (d_wmi <= 0)) | ((wm >= prop_max) & (d_wmi >= 0));
         d_wmi = (~reaching_bound_w) .* d_wmi;
 
         d_wsi(1:2) = min([r_sigma_a; r_sigma_b], max(- [r_sigma_a; r_sigma_b], d_wsi(1:2)));

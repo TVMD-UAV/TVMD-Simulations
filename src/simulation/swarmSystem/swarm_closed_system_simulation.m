@@ -45,8 +45,14 @@ desire_t = matlabFunction(desire);
 
 % region [Initial conditions]
 %                              psi, phi, theta
+initial_orientation = getI_R_B(0.5, 0, 0.5);
 
-syms psi phi theta dpsi dphi dtheta
+psi = sym('psi');
+phi = sym('phi');
+theta = sym('theta');
+dpsi = sym('dpsi');
+dphi = sym('dphi');
+dtheta = sym('dtheta');
 R = getI_R_B(psi, phi, theta);
 d_R = diff(R, psi) * dpsi + diff(R, phi) * dphi + diff(R, theta) * dtheta;
 global d_R_ht
@@ -105,7 +111,7 @@ function [dydt, inputs, outputs, refs, metrics] = drone_fly(t, y, mode)
     %traj = RegulationTrajectory();
     % [u_t, u_m, attitude_d] = Controller(params, traj, y);
     %[u_t, u_m, attitude_d] = Controller_MinimumSnap(t, params, traj, y);
-    [u_t, u_m, attitude_d] = ControllerFull(params, traj, y);
+    [u_t, u_m, attitude_d, eR, eOmega, theta] = ControllerFull(params, traj, y);
 
     W = diag(ones([n 1]));
     [a0, b0, f0] = get_motor_state(params, n, y);
@@ -246,7 +252,7 @@ end
 % endregion [Controller]
 
 % region [ControllerFull]
-function [u_t, u, attitude_d] = ControllerFull(params, traj, y)
+function [u_t, u, attitude_d, eR, eOmega, theta] = ControllerFull(params, traj, y)
     m = params('m'); % Mass, Kg
     g = params('g');
     I_b = params('I_b'); % Leverage length from c.p. to c.g.
@@ -275,9 +281,10 @@ function [u_t, u, attitude_d] = ControllerFull(params, traj, y)
 
     psi_d = traj(6, 1); phi_d = traj(5, 1); theta_d = traj(4, 1);
     R_r = getI_R_B(psi_d, phi_d, theta_d);
-    attitude_d = [psi_d, phi_d, theta_d];
+    % attitude_d = [psi_d, phi_d, theta_d];
 
-    R_d = calc_R_d(params, f_r, R_r);
+    [R_d, theta] = calc_R_d(params, f_r, R_r);
+    attitude_d = rot2zxy(R_d);
 
     global d_R_ht
     % psi phi theta dpsi dphi dtheta
@@ -300,7 +307,7 @@ function [u_t, u, attitude_d] = ControllerFull(params, traj, y)
     u = M_d;
 end
 
-function R_d = calc_R_d(conf, f_r, R_r)
+function [R_d, theta] = calc_R_d(conf, f_r, R_r)
     b1r = R_r(:, 1);
     b2r = R_r(:, 2);
     b3r = R_r(:, 3);

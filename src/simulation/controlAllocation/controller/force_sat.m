@@ -10,8 +10,16 @@ function u_sat = force_sat(conf, u)
     b = n_y * f_max + (n_x ~= 0) * u(3) * tan(sigma_a);
     t = (a * b) / sqrt(u(1)^2 * b^2 + u(2)^2 * a^2);
 
+    % Directional saturation
     u_sat = u;
     if t < 1
         u_sat(1:2) = t * u(1:2);
+    end
+
+    % Magnitude saturation
+    roof_lim = n * f_max;
+    scale = norm(u_sat(1:3)) / roof_lim;
+    if scale > 1
+        u_sat(1:3) = u_sat(1:3) / scale;
     end
 end
