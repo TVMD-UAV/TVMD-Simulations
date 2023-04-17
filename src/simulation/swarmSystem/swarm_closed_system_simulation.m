@@ -3,11 +3,13 @@ clear all;
 rng('default')
 
 addpath('../model/model')
+addpath("../model/model/swarm_conf")
 addpath('../model/viz')
 addpath('../helper_functions')
 
 % Control allocator
 addpath('../controlAllocation/algorithms')
+addpath('../controlAllocation/controller')
 addpath('../controlAllocation/system_func')
 addpath('../controlAllocation/evaluation')
 addpath('../controlAllocation/viz')
@@ -21,7 +23,8 @@ filename = 'swarm_allocation';
 global T progress;
 T = 5;
 progress = 0;
-[key, params] = get_swarm_params();
+
+[key, params] = get_swarm_params(conf_name);
 n = length(params('psi'));
 
 % region [reference generation]
@@ -102,8 +105,8 @@ plotter(params, t, r, dydt, y, inputs, outputs, refs, metrics, ...
 % region [drone_fly]
 function [dydt, inputs, outputs, refs, metrics] = drone_fly(t, y, mode)
     % Control input
-    global T progress;
-    [key, params] = get_swarm_params();
+    global T progress conf_name alg_name;
+    [key, params] = get_swarm_params(conf_name);
     n = length(params('psi'));
     dt = 0.001;
 

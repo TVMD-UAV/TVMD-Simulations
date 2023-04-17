@@ -1,4 +1,4 @@
-function [key, params] = get_swarm_params()
+function [key, params] = get_swarm_params(conf_name)
     % Environment
     g = 9.818; % gravity
     rho = 1.225; % kg/m3
@@ -44,10 +44,43 @@ function [key, params] = get_swarm_params()
     esp_M = 0.1;
 
     GRID_SIZE = 0.5 * sqrt(2) / 2;
-    pos = [-1 1 0 -1 1 -1 1 -2 0 2;
-        3 3 2 1 1 -1 -1 -2 -2 -2;
-        0 0 0 0 0 0 0 0 1 0] * GRID_SIZE;
-    psi = [0 0 0 0 0 0 0 0 0 0];
+    if conf_name == "model_A3_con"
+        [pos, psi] = model_A3_con(GRID_SIZE);    
+    elseif conf_name == "model_A4_con"
+        [pos, psi] = model_A4_con(GRID_SIZE);
+    elseif conf_name == "model_A5_con"
+        [pos, psi] = model_A5_con(GRID_SIZE);
+    elseif conf_name == "model_A6_con"
+        [pos, psi] = model_A6_con(GRID_SIZE);
+    elseif conf_name == "model_A7_con"
+        [pos, psi] = model_A7_con(GRID_SIZE);
+    elseif conf_name == "model_A8_con"
+        [pos, psi] = model_A8_con(GRID_SIZE);
+    elseif conf_name == "model_A9_con"
+        [pos, psi] = model_A9_con(GRID_SIZE);
+    elseif conf_name == "model_A10_con"
+        [pos, psi] = model_A10_con(GRID_SIZE);
+    elseif conf_name == "model_A3_inc"
+        [pos, psi] = model_A3_inc(GRID_SIZE);    
+    elseif conf_name == "model_A4_inc"
+        [pos, psi] = model_A4_inc(GRID_SIZE);
+    elseif conf_name == "model_A5_inc"
+        [pos, psi] = model_A5_inc(GRID_SIZE);
+    elseif conf_name == "model_A6_inc"
+        [pos, psi] = model_A6_inc(GRID_SIZE);
+    elseif conf_name == "model_A7_inc"
+        [pos, psi] = model_A7_inc(GRID_SIZE);
+    elseif conf_name == "model_A8_inc"
+        [pos, psi] = model_A8_inc(GRID_SIZE);
+    elseif conf_name == "model_A9_inc"
+        [pos, psi] = model_A9_inc(GRID_SIZE);
+    elseif conf_name == "model_A10_inc"
+        [pos, psi] = model_A10_inc(GRID_SIZE);
+    elseif conf_name == "model_T10_con"
+        [pos, psi] = model_T10_con(GRID_SIZE);
+    elseif conf_name == "model_T10_inc"
+        [pos, psi] = model_T10_inc(GRID_SIZE);
+    end
 
     I_b = zeros(3);
 

@@ -1,5 +1,7 @@
 close all;
 addpath('../helper_functions')
+addpath('../model/model')
+addpath('../model/model/swarm_conf')
 
 projectpath = 'H:\\.shortcut-targets-by-id\\1_tImZc764OguGZ7irM7kqDx9_f6Tdqwi\\National Taiwan University\\Research\\Multidrone\\VTswarm\\src\\simulation\\model\\outputs\\1015_redistributed_full_dynamics\\r_50_rf_50\\';
 foldername = ["moore\\", "nullspace\\", "redistributed\\"];
@@ -8,7 +10,7 @@ filename = 'swarm_allocation.mat';
 markers = ["o", "x", "^"];
 color = ["#0072BD", "#D95319", "#EDB120", "#7E2F8E"];
 
-[key, params] = get_swarm_params();
+[key, params] = get_swarm_params("model_A9_inc");
 n = length(params('psi'));
 
 for i = 1:length(foldername)
