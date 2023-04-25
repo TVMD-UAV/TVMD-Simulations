@@ -1,5 +1,6 @@
+function swarm_closed_system_simulation(conf_id, alg_id)
 close all;
-clear all;
+% clear all;
 rng('default')
 
 addpath('../model/model')
@@ -14,9 +15,37 @@ addpath('../controlAllocation/system_func')
 addpath('../controlAllocation/evaluation')
 addpath('../controlAllocation/viz')
 
-projectpath = 'H:\\.shortcut-targets-by-id\\1_tImZc764OguGZ7irM7kqDx9_f6Tdqwi\\National Taiwan University\\Research\\Multidrone\\VTswarm\\src\\simulation\\model\\outputs\\1015_redistributed_full_dynamics\\';
-foldername = 'r_50_rf_50\\interior\\';
+projectpath = 'H:\\我的雲端硬碟\\National Taiwan University\\Research\\Multidrone\\VTswarm\\src\\simulation\\outputs\\';
+
+projectname = "230223_conf_comparison";
+% projectname = "230226_traj_tracking";
+conf_map = ["model_A3_con", "model_A4_con", "model_A5_con", "model_A6_con", "model_A7_con", "model_A8_con", "model_A9_con", "model_A10_con", ...
+            "model_A3_inc", "model_A4_inc", "model_A5_inc", "model_A6_inc", "model_A7_inc", "model_A8_inc", "model_A9_inc", "model_A10_inc", ...
+            "model_T10_con", "model_T10_inc"];
+alg_map = ["moore", "nullspace", "redistributed", "null_redistributed"];
+
+% region [check folder exist]
+global conf_name alg_name;
+conf_name = conf_map(conf_id);
+alg_name = alg_map(alg_id);
+foldername = strcat(conf_name, "\\", alg_name, "\\");
 % foldername = 'test\\';
+
+projectpath = strcat(projectpath, projectname, "\\");
+check_dirname = strcat(projectpath, conf_name);
+if not(isfolder(check_dirname))
+    mkdir(check_dirname)
+end
+project_full_dirname = strcat(projectpath, foldername);
+if not(isfolder(project_full_dirname))
+    mkdir(project_full_dirname)
+end
+fprintf("=================================\n")
+fprintf("Configuration: \t%s\n", conf_name)
+fprintf("Ctrl Algorithm: \t%s\n", alg_name)
+fprintf("Project folder: \t%s\n", project_full_dirname)
+% end region [check folder exist]
+
 filename = 'swarm_allocation';
 
 % Simulation parameters
@@ -90,17 +119,18 @@ fprintf("] \n");
 % endregion [Reconstruction]
 
 % region [Visualization]
-interval = floor(length(y) / (T * 10));
+interval = floor(length(y) / (T * 0.5));
 if interval < 1; interval = 1; end
 fprintf("Ploting interval: %d\n", interval);
 r = 1:interval:length(y);
 
-matfilename = strcat(projectpath, foldername, filename);
+matfilename = strcat(projectpath, "\\", foldername, filename);
 save(matfilename, 'params', 't', 'r', 'y', 'dydt', 'inputs', 'outputs', 'refs', 'metrics');
 
 plotter(params, t, r, dydt, y, inputs, outputs, refs, metrics, ...
     projectpath, foldername, filename);
-% endregion [Visualization]
+% end region [Visualization]
+end
 
 % region [drone_fly]
 function [dydt, inputs, outputs, refs, metrics] = drone_fly(t, y, mode)
@@ -119,27 +149,30 @@ function [dydt, inputs, outputs, refs, metrics] = drone_fly(t, y, mode)
     W = diag(ones([n 1]));
     [a0, b0, f0] = get_motor_state(params, n, y);
 
-    % region [nullspace]
-    % [a0, b0, f0, u_d] = allocator_moore_penrose([u_t; 0;0;0], params);
-    % [al0, bl0, fl0, u_d] = allocator_moore_penrose([u_t; u_m], params);
-    % [al0, bl0, fl0] = output_saturation2(params, n, al0, bl0, fl0);
-    % [a_d, b_d, F_d, x, u_d] = allocator_nullspace([u_t; u_m], params, fl0, al0, bl0, dt);
-    % s = x(3 * n + 1:6 * n);
-    % dist_s = [min(s); mean(s); max(s)];
-    % end region [nullspace]
-
-    % [a_d, b_d, R, F_d, u_d] = allocator_interior_point([u_t; u_m], W, params, a0, b0, f0);
-    % [a_d, b_d, F_d, u_d] = allocator_moore_penrose([u_t; u_m], params);
-
-    % region [Redistributed Moore]
-    % [al0, bl0, fl0] = output_saturation(params, n, al0, bl0, fl0, a0, b0, f0, dt);
-    [al0, bl0, fl0, u_d] = allocator_moore_penrose([u_t; u_m], params);
-    [al0, bl0, fl0] = output_saturation2(params, n, al0, bl0, fl0);
-    [a_d, b_d, F_d, u_d] = allocator_redistributed_nonlinear([u_t; u_m], params, al0, bl0, fl0, W, dt);
-    % end region [Redistributed Moore]
-
-    % Redistributed
-    % [a_d, b_d, F_d, u_d] = allocator_redistributed_nonlinear([u_t; u_m], params, a0, b0, f0, W, dt);
+    if alg_name == "nullspace"
+        % region [nullspace]
+        % [a0, b0, f0, u_d] = allocator_moore_penrose([u_t; 0;0;0], params);
+        [al0, bl0, fl0, u_d] = allocator_moore_penrose([u_t; u_m], params);
+        [al0, bl0, fl0] = output_saturation2(params, n, al0, bl0, fl0);
+        [a_d, b_d, F_d, x, u_d] = allocator_nullspace([u_t; u_m], params, fl0, al0, bl0, dt);
+        % s = x(3 * n + 1:6 * n);
+        % dist_s = [min(s); mean(s); max(s)];
+        % end region [nullspace]
+    elseif alg_name == "interior"
+        [a_d, b_d, R, F_d, u_d] = allocator_interior_point([u_t; u_m], W, params, a0, b0, f0);
+    elseif alg_name == "moore"
+        [a_d, b_d, F_d, u_d] = allocator_moore_penrose([u_t; u_m], params);
+    elseif alg_name == "redistributed"
+        % region [Redistributed Moore]
+        [a_d, b_d, F_d, u_d] = allocator_redistributed_nonlinear([u_t; u_m], params, a0, b0, f0, W, dt);
+        % [a_d, b_d, F_d] = output_saturation2(params, n, a_d, b_d, F_d);
+        % end region [Redistributed Moore]
+    elseif alg_name == "null_redistributed"
+        [a_d, b_d, F_d, u_d] = allocator_null_redistr([u_t; u_m], params, a0, b0, f0, W, dt);
+        % [a_d, b_d, F_d, u_d] = allocator_null_redistr_torque([u_t; u_m], params, a0, b0, f0, W, dt);
+        % [a_d, b_d, F_d, u_d] = allocator_null_redistr_moment_enhance([u_t; u_m], params, a0, b0, f0, W, dt);
+    end
+    [a_d, b_d, F_d] = output_saturation2(params, n, a_d, b_d, F_d);
 
     dist_s = [0; 0; 0];
     a = a_d; b = b_d; F = F_d;
@@ -154,12 +187,13 @@ function [dydt, inputs, outputs, refs, metrics] = drone_fly(t, y, mode)
 
     desire = reshape(traj', [18, 1]);
     inputs = [[u_t; u_m]; F_d; commands];
-    outputs = [thrust; meta];
+    outputs = [thrust; meta; eR; eOmega; theta];
     refs = [desire; attitude_d'; [0; 0; 0]; dist_s];
     metrics = [te; ef; em; df; dm];
 
     % Progress
     current = 40 * t / T;
+    % fprintf("t, norm: %.4f, %.4f\n", t, norm(traj(1:3, 1) - y(16:18)))
 
     if current > progress
         progress = ceil(current);
@@ -344,7 +378,7 @@ end
 % region [plotter]
 function plotter(params, t, r, dydt, y, inputs, outputs, refs, metrics, projectpath, foldername, filename)
     rotation_matrix = true;
-    n = 10;
+    n = length(params('psi'));
 
     dirname = strcat(projectpath, foldername);
 
