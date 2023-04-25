@@ -31,23 +31,7 @@ function [a, b, F, u] = allocator_redistributed_nonlinear(t_d, conf, a0, b0, f0,
     dbp = sigma_b - b0;
     dbn = -sigma_b - b0;
    
-    % Initial allocation 
-    M_dag = pinv(M, pinv_tol);
-    u_delta = M_dag * t_d;
-
-    % Checking constraint violations
-    [fl0, al0, bl0] = inverse_input(u_delta);
-    al0 = min(a_m_max, max(a_m_min, al0));
-    bl0 = min(b_m_max, max(b_m_min, bl0));
-
-    % Scaling magnitude
-    t_max = max(fl0) / f_max;
-    if t_max > 1
-        fl0 = fl0 / t_max;
-    end
-
-    u0 = get_f(al0, bl0, fl0);
-    % t0 = full_dof_mixing(P, psi, al0, bl0, fl0);
+    u0 = get_f(zeros([n 1]), zeros([n 1]), ones([n 1]));
     t0 = M * u0;
     t_delta = t_d - t0;
 
@@ -148,8 +132,7 @@ function [a, b, F, u] = allocator_redistributed_nonlinear(t_d, conf, a0, b0, f0,
         u_delta = M_esp_dag * t_delta;
         tf0 = get_tf_from_u(u0, n);
 
-        [d_max, i_star] = calc_nearest_c2(N_esp, u0, u0+u_delta, ...
-            a0, b0, tf0, dan, dap, dbn, dbp, f_max);
+        [d_max, i_star, N_esp, ti, tw] = calc_nearest_c2(N_esp, u0, u0+u_delta, sigma_a, sigma_b, f_max);
 
         if d_max == inf
             break;
@@ -207,11 +190,8 @@ function [a, b, F, u] = allocator_redistributed_nonlinear(t_d, conf, a0, b0, f0,
     u = full_dof_mixing(P, psi, a, b, F);
 end
 
-function [c_star, i_star] = calc_nearest_c(N_esp, u0, ud, a0, b0, tf0, dan, dap, dbn, dbp, f_max)
-    % a0, b0, tf0: previous state
-    % dan, dbn: negtive bound of rate
-    % dap, dbp: positive bound of rate
-
+% region [calc_nearest_c2]
+function [c_star, i_star, N_esp, ti, tw] = calc_nearest_c2(N_esp, u0, ud, sigma_a, sigma_b, f_max)
     % u0: allocation result in previous step
     % ud: temporary target
 
@@ -222,75 +202,38 @@ function [c_star, i_star] = calc_nearest_c(N_esp, u0, ud, a0, b0, tf0, dan, dap,
     u_xyz = reshape(u0, [3 n]);
     u_delta = ud - u0;
     u_delta_xyz = reshape(u_delta, [3, n]);
-    u_delta_xyz(:, ~N_esp) = 0; % disabled actuators
-    v_norm = get_tf_from_u(u_delta, n);
+    % u_delta_xyz(:, ~N_esp) = 0; % disabled actuators
 
     % Determine direction
+    [f0, a0, b0] = inverse_input(u0);
     [f1, a1, b1] = inverse_input(ud);
-    da = dap;
-    db = dbp;
-    da(a1 - a0 < 0) = dan(a1 - a0 < 0);
-    db(b1 - b0 < 0) = dbn(b1 - b0 < 0);
+    % norm(get_f(a1, b1, f1) - ud)
+    a_s = -sigma_a * ones([n 1]);
+    b_s = -sigma_b * ones([n 1]);
+    a_s(a1 - a0 > 0) = sigma_a;
+    b_s(b1 - b0 > 0) = sigma_b;
 
     % Finding nearest
-    v_delta_x = u_delta_xyz(1, :) ./ (tan(b0 + db)');
-    v_xyz_x = u_xyz(1, :) ./ (tan(b0 + db)');
-    txa = u_delta_xyz(2, :)'.^2 + u_delta_xyz(3, :)'.^2 - v_delta_x'.^2;
-    txb = u_xyz(2, :)' .* u_delta_xyz(2, :)' + u_xyz(3, :)' .* u_delta_xyz(3, :)' - v_xyz_x' .* v_delta_x';
-    txc = u_xyz(2, :)'.^2 + u_xyz(3, :)'.^2 - v_xyz_x'.^2;
-    tx = (-txb - sqrt(txb.^2 - txa .* txc)) ./ txa;
-    tx(imag(tx) ~= 0) = inf;
-
-    ty = (-u_xyz(2, :)' - u_xyz(3, :)' .* tan(a0 + da)) ./ (u_delta_xyz(2, :)' + u_delta_xyz(3, :)' .* tan(a0 + da));
-
-    kkb = dot(u_xyz, u_delta_xyz, 1)' ./ v_norm.^2;
-    kkc = (tf0 .* tf0 - f_max^2) ./ v_norm.^2;
-    tz = -kkb + sqrt(kkb .* kkb - kkc);
-
-    tw = [tx ty tz]
-    tw(tw < 0) = inf;
-    ti = min(tw, [], 2);
-    ti(N_esp <= 0) = inf;
-    [c_star, i_star] = min(ti);
-end
-
-
-function [c_star, i_star] = calc_nearest_c2(N_esp, u0, ud, a0, b0, tf0, dan, dap, dbn, dbp, f_max)
-    % a0, b0, tf0: previous state
-    % dan, dbn: negtive bound of rate
-    % dap, dbp: positive bound of rate
-
-    % u0: allocation result in previous step
-    % ud: temporary target
-
-    % u is 3n x 1 column vector
-    % u_xyz is 3 x n matrix
-    % v is alias for u / tan
-    n = length(N_esp);
-    u_xyz = reshape(u0, [3 n]);
-    u_delta = ud - u0;
-    u_delta_xyz = reshape(u_delta, [3, n]);
-    u_delta_xyz(:, ~N_esp) = 0; % disabled actuators
-
-    % Determine direction
-    [f1, a1, b1] = inverse_input(ud);
-    da = dap;
-    db = dbp;
-    da(a1 - a0 < 0) = dan(a1 - a0 < 0);
-    db(b1 - b0 < 0) = dbn(b1 - b0 < 0);
-
-    % Finding nearest
-    tw = solve_intersections(u_xyz, u_delta_xyz, a0, b0, tf0, da, db, f_max);
+    tw = solve_intersections(u_xyz, u_delta_xyz, a_s, b_s, f_max);
 
     % Checking direction of delta
-    % is_at_origin = (ones([1 3]) * (u_xyz == zeros([3 n])) == 3);
     is_at_origin = (u_xyz(3, :) == zeros([1 n]));
     [df1, da1, db1] = inverse_input(u_delta);
-    mask_a = (dan <= da1) & (da1 <= dap); % in range
-    mask_b = (dbn <= db1) & (db1 <= dbp); 
-    t_dir = is_at_origin' & mask_a & mask_b;
+    mask_da = (-sigma_a <= da1) & (da1 <= sigma_a); % in range
+    mask_db = (-sigma_b <= db1) & (db1 <= sigma_b); 
+    t_dir = is_at_origin' & mask_da & mask_db;
     % [is_at_origin; t_dir'; N_esp']
 
+    % Checking at boundary
+    % mask_a0 = ((a0 == sigma_a) & (a1 <= a0)) | ((a0 == -sigma_a) & (a1 >= a0));
+    % mask_b0 = ((b0 == sigma_b) & (a1 <= a0)) | ((b0 == -sigma_b) & (a1 >= a0));
+    % mask_f0 = ((f0 == f_max) & (f1 < f0)) | ((f0 == 0) & (f1 > 0));
+
+    % tw(tw < 0) = inf;        % Not intersecting in forward direction
+    % ti = min(tw, [], 2);     % The nearest collision in the 3 DOFs
+    % ti(N_esp <= 0) = inf;
+
+    % Checking direction of delta
     tw(tw < 0) = inf;        % Not intersecting in forward direction
     ti = min(tw, [], 2);     % The nearest collision in the 3 DOFs
     ti(N_esp <= 0) = inf;    % 
@@ -298,29 +241,42 @@ function [c_star, i_star] = calc_nearest_c2(N_esp, u0, ud, a0, b0, tf0, dan, dap
 
     [c_star, i_star] = min(ti);
 end
+% % end region [calc_nearest_c2]
 
-function tw = solve_intersections(u_xyz, u_delta_xyz, a0, b0, tf0, da, db, f_max)
-    v_delta_x = u_delta_xyz(1, :) ./ (tan(b0 + db)');
-    v_xyz_x = u_xyz(1, :) ./ (tan(b0 + db)');
+% region [solve_intersection]
+function tw = solve_intersections(u_xyz, u_delta_xyz, a_s, b_s, f_max)
+    % a_s: bound of a (pos / neg sigmal_a, according to the direction of delta)
+    % b_s: bound of a (pos / neg sigmal_b, according to the direction of delta)
+    v_delta_y = u_delta_xyz(2, :) ./ (tan(a_s)');
+    v_xyz_y = u_xyz(2, :) ./ (tan(a_s)');
     v_norm = vecnorm(u_delta_xyz, 2, 1)';
+    tf0 = vecnorm(u_xyz, 2, 1)';
 
     % x-axis
-    txa = u_delta_xyz(2, :)'.^2 + u_delta_xyz(3, :)'.^2 - v_delta_x'.^2;
-    txb = u_xyz(2, :)' .* u_delta_xyz(2, :)' + u_xyz(3, :)' .* u_delta_xyz(3, :)' - v_xyz_x' .* v_delta_x';
-    txc = u_xyz(2, :)'.^2 + u_xyz(3, :)'.^2 - v_xyz_x'.^2;
+    txa = u_delta_xyz(1, :)'.^2 + u_delta_xyz(3, :)'.^2 - v_delta_y'.^2;
+    txb = u_xyz(1, :)' .* u_delta_xyz(1, :)' + u_xyz(3, :)' .* u_delta_xyz(3, :)' - v_xyz_y' .* v_delta_y';
+    txc = u_xyz(1, :)'.^2 + u_xyz(3, :)'.^2 - v_xyz_y'.^2;
     tx = (-txb - sqrt(txb.^2 - txa .* txc)) ./ txa;
-    tx(imag(tx) ~= 0) = inf;
+    
+    txl = -txc ./ (2 * txb);
+    mask_a_small = abs(txa) < 1e-10;
+    mask_no_sol = txb.^2 - txa .* txc < 0;
+    tx(mask_a_small) = txl(mask_a_small);
+    tx(mask_no_sol) = inf;
 
     % y-axis
-    ty = (-u_xyz(2, :)' - u_xyz(3, :)' .* tan(a0 + da)) ./ (u_delta_xyz(2, :)' + u_delta_xyz(3, :)' .* tan(a0 + da));
+    ty = -(u_xyz(1, :)' - u_xyz(3, :)' .* tan(b_s)) ./ (u_delta_xyz(1, :)' - u_delta_xyz(3, :)' .* tan(b_s));
 
     % z-axis
     kkb = dot(u_xyz, u_delta_xyz, 1)' ./ v_norm.^2;
     kkc = (tf0 .* tf0 - f_max^2) ./ v_norm.^2;
     tz = -kkb + sqrt(kkb .* kkb - kkc);
+    mask_no_sol = kkb .* kkb - kkc < 0;
+    tz(mask_no_sol) = inf;
 
-    tw = [tx, ty, tz];
+    tw = [tx ty tz];
 end
+% end region [solve_intersection]
 
 function tf = get_tf_from_u(u, n)
     % u: column vector
