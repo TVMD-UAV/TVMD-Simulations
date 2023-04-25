@@ -409,8 +409,8 @@ function plotter(params, t, r, dydt, y, inputs, outputs, refs, metrics, projectp
 
     % Extract parameters
     u_d = inputs(:, 1:6);
-    F_d = inputs(:, 7:16);
-    u = inputs(:, 17:22);
+    F_d = inputs(:, 7:7+n-1);
+    u = inputs(:, 7+n:7+n+5);
 
     % States
     dW = dydt(:, 1:3);
@@ -425,6 +425,9 @@ function plotter(params, t, r, dydt, y, inputs, outputs, refs, metrics, projectp
     B_M_d = outputs(:, 7:9);
     B_M_a = outputs(:, 10:12);
     B_M_g = outputs(:, 13:15);
+    eR = outputs(:, 16:18);
+    eOmega = outputs(:, 19:21);
+    theta = outputs(:, 22);
     traj = reshape(refs(:, 1:18), [length(y), 3, 6]);
     traj = permute(traj, [1, 3, 2]);
     Q_d = refs(:, 19:21);
@@ -443,13 +446,22 @@ function plotter(params, t, r, dydt, y, inputs, outputs, refs, metrics, projectp
     TfTd = pagemtimes(P_prop, permute(wm .* wm, [2 1 3]));
     Tf = reshape(TfTd(1, :, :), [length(y) n]);
 
+    dvtheta = reshape(dydt(:, 19:18 + 6 * n), [length(y) 6 n]);
+    dwm = dvtheta(:, 1:2, :);
+    da = squeeze(dvtheta(:, 3, :));
+    db = squeeze(dvtheta(:, 4, :));
+
+    dTfTd = pagemtimes(P_prop, permute(2 * wm .* dwm, [2 1 3]));
+    dTf = reshape(dTfTd(1, :, :), [length(y) n]);
+
+
     % Rotational
     if rotation_matrix == true
         % Rotation matrix
         R = reshape(y(:, 4:12), [length(y) 3 3]); % 3x3
         eulZXY = rot2zxy_crossover(R);
         attitude_d = Q_d(:, 1:3);
-        R = R(r, :, :);
+        % R = R(r, :, :);
     else
         % Quaternion
         R = zeros([length(r) 3 3]);
@@ -469,20 +481,51 @@ function plotter(params, t, r, dydt, y, inputs, outputs, refs, metrics, projectp
     value = {projectpath, foldername, filename, lineStyle, markerStyle};
     options = containers.Map(key, value);
 
+    figure('Position', [10 10 800 1000])
+    plot(t, theta(:),'DisplayName','$$\theta$$','LineWidth',2, 'LineStyle','-', 'Color', '#0072BD');
+    ylabel('rad')
+    xlabel('time')
+    ylim([-0.1 0.1])
+    title('Theta')
+    hl = legend('show');
+    set(hl, 'Interpreter','latex')
+
     plot_state(t, P, dP, traj, W, beta, eulZXY, attitude_d, options);
-    plot_error(t, P, dP, traj, W, beta, eulZXY, attitude_d, tilde_mu, options);
+    plot_error(t, P, dP, traj, eR, eOmega, tilde_mu, options);
 
     plot_command_6dof(t, u_d, u, options)
-    plot_norm(t, dP, P, traj, eulZXY, attitude_d, W, beta, [], [], options);
+    plot_norm(t, dP, P, traj, eR, eOmega, [], [], options);
     plot_torque(t, B_M_f, B_M_d, B_M_g, B_M_a, options);
 
     plot_metrics(t, metrics(:, 1), metrics(:, 2), metrics(:, 3), metrics(:, 4), metrics(:, 5), options);
 
-    plot_constraints_profile(params, a, b, Tf, t, (t(end) - t(1)) / length(y), options);
-    % plot_distribution_s(t, dist_s);
+    plot_constraints_profile_with_rates(params, a, b, Tf, da, db, dTf, t, options);
+    % % plot_distribution_s(t, dist_s);
 
-    plot_swarm_animation(t, r, P, traj, options, R, thrust);
-    plot_swarm_3d(t, r, P, CoP, traj, thrust, R, options);
+    fps = 0.5;
+    r = zeros([floor(fps * t(end)) 1]);
+    idx = 1;
+    r(idx) = 1;
+    for i=1:length(y)
+        if t(i) > idx * (1/fps)
+            idx = idx + 1;
+            r(idx) = i;
+        end
+    end
+    plot_swarm_3d(params, t, r, P, CoP, traj, a, b, Tf, R(r, :, :), options);
+
+
+    fps = 20;
+    r = zeros([floor(fps * t(end)) 1]);
+    idx = 1;
+    r(idx) = 1;
+    for i=1:length(y)
+        if t(i) > idx * (1/fps)
+            idx = idx + 1;
+            r(idx) = i;
+        end
+    end
+    plot_swarm_animation(params, t, r, P, traj, a, b, Tf, options, R, thrust);
 end
 
 % endregion [plotter]
@@ -502,7 +545,9 @@ end
 % endregion [plot_distribution_s]
 
 % region [plot_swarm_3d]
-function plot_swarm_3d(t, r, P, CoP, traj, thrust, R, options)
+function plot_swarm_3d(params, t, r, P, CoP, traj, a, b, Tf, R, options)
+    camproj perspective
+    n = length(params('psi'));
     figure
     % Draw desired trajectory
     scatter3(traj(:, 1, 1), traj(:, 2, 1), traj(:, 3, 1), 4, "red"); hold on
@@ -521,15 +566,34 @@ function plot_swarm_3d(t, r, P, CoP, traj, thrust, R, options)
 
     % Draw agent body
     for i = 1:length(r)
-        plot_3kg_swarm(P(r(i), :), R(i, :, :), 1 + 256 * t(r(i)) / t(end), thrust(r, :)); hold on
+        f0 = get_f(a(r(i), :)', b(r(i), :)', Tf(r(i), :)');
+        f0 = reshape(f0, [3 n]) * 0.1;
+        plot_3kg_swarm(params, P(r(i), :), R(i, :, :), 1 + 256 * t(r(i)) / t(end), f0); hold on
     end
 
-    xlabel('x')
-    ylabel('y')
-    zlabel('z')
-    title('3D view')
-    colorbar
+    xlabel('x', 'FontName', 'Times New Roman', 'FontSize', 12)
+    ylabel('y', 'FontName', 'Times New Roman', 'FontSize', 12)
+    zlabel('z', 'FontName', 'Times New Roman', 'FontSize', 12)
+    campos([-3 25 3])
+    % title('3D view')
+    
+    tt = colorbar;
+    ylabel(tt, 'Time (sec)', 'FontName', 'Times New Roman')
+    
+    % set(gca, 'DataAspectRatio', [1 1 1])
+    pp = tt.Position
+    pp(4) = pp(4) * 0.8;
+    pp(1) = pp(1) + 0.05;
+
+    tt.Label.Position(1) = 0.5;
+    tt.Label.Position(2) = -2;
+    tt.Label.Rotation = 0;
+    set(tt, 'Position', pp);
+
+
     set(gca, 'DataAspectRatio', [1 1 1])
+    set(gcf, 'Renderer', 'painters')
+    print(gcf, '-depsc', 'test.eps')
     saveas(gcf, strcat(options('projectpath'), options('foldername'), options('filename'), '_3d.png'));
     saveas(gcf, strcat(options('projectpath'), options('foldername'), options('filename'), '_3d.svg'));
     saveas(gcf, strcat(options('projectpath'), options('foldername'), options('filename'), '_3d.fig'));
@@ -538,7 +602,8 @@ end
 % endregion [plot_swarm_3d]
 
 % region [plot_swarm_animation]
-function plot_swarm_animation(t, r, P, traj, options, R, thrust)
+function plot_swarm_animation(params, t, r, P, traj, a, b, Tf, options, R, thrust)
+    n = length(params('psi'));
     figure('Position', [10 10 1200 1200])
     warning('off', 'MATLAB:hg:ColorSpec_None')
     set(gca, 'DataAspectRatio', [1 1 1])
@@ -548,13 +613,25 @@ function plot_swarm_animation(t, r, P, traj, options, R, thrust)
     scatter3([0 max(P(:, 1)) + 2], [0 max(P(:, 2)) + 2], [0 max(P(:, 3)) + 2], 'Color', 'none'); hold on
     ss_traj = scatter3(traj(1, 1, 1), traj(1, 2, 1), traj(1, 3, 1), "red", 'Marker', '.'); hold on
     ss_state = scatter3(P(1, 1), P(1, 2), P(1, 3), "blue"); hold on
-    patch_obj = plot_3kg_swarm(P(r(1), :), R(r(1), :, :), 1 + 256 * t(r(1)) / t(end), [0 0 0]); hold on
+    f0 = get_f(a(r(1), :)', b(r(1), :)', Tf(r(1), :)');
+    f0 = reshape(f0, [3 n]);
+    [patch_obj, quiver_obj, beam_obj] = plot_3kg_swarm(params, P(r(1), :), R(r(1), :, :), 1 + 256 * t(r(1)) / t(end), f0); hold on
     xlabel('x')
     ylabel('y')
     zlabel('z')
     title('3D view')
+    hlight = camlight('headlight'); 
+    p.AmbientStrength = 0.1;
+    p.SpecularStrength = 1;
+    p.DiffuseStrength = 1;
+    set(gcf,'Color',[0, 0, 0])
+    set(gca,'Color',[0,0,0])
 
     for i = 1:length(r)
+        campos(squeeze(traj(r(i), 1:3, 1)) + [-3 3 3])
+        camtarget(squeeze(traj(r(i), 1:3, 1)))
+        camlight(hlight,'headlight')
+
         ss_traj.XData = traj(1:r(i), 1, 1);
         ss_traj.YData = traj(1:r(i), 2, 1);
         ss_traj.ZData = traj(1:r(i), 3, 1);
@@ -564,7 +641,9 @@ function plot_swarm_animation(t, r, P, traj, options, R, thrust)
         ss_state.ZData = P(1:r(i), 3);
 
         set(gca, 'DataAspectRatio', [1 1 1])
-        draw_3kg_swarm_animation(patch_obj, P(r(i), :), R(i, :, :), 1 + 256 * t(r(i)) / t(end), thrust(r(i), :));
+        f0 = get_f(a(r(i), :)', b(r(i), :)', Tf(r(i), :)');
+        f0 = reshape(f0, [3 n]);
+        draw_3kg_swarm_animation(params, patch_obj, quiver_obj, beam_obj, P(r(i), :), R(r(i), :, :), 1 + 256 * t(r(i)) / t(end), f0);
 
         % Saving the figure
         frame = getframe(gcf);

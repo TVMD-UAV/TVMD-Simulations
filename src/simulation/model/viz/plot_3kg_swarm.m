@@ -1,17 +1,18 @@
-function patch_obj = plot_3kg_swarm(P, R, ci, thrust)
-    GRID_SIZE = 0.5; %0.5*sqrt(2)/2;
-    dP = [-1 1 0 -1 1 -1 1 -2 0 2;
-        3 3 2 1 1 -1 -1 -2 -2 -2;
-        0 0 0 0 0 0 0 0 0.5 0] * GRID_SIZE;
+function [patch_obj, quiver_obj, beam_obj] = plot_3kg_swarm(params, P, R, ci, f0)
+    dP = params('pos');
+    psi = params('psi');
 
     R = squeeze(R);
     PP = R * dP + P';
 
     patch_obj = gobjects([length(dP), 1]);
+    beam_obj = gobjects([length(dP), 1]);
+    quiver_obj = gobjects([length(dP), 1]);
 
     for i = 1:length(dP)
-        patch_obj(i) = draw_agent_quad(PP(:, i)', R, ci);
-        %quiver3(PP(1, i), PP(2, i), PP(3, i), thrust(1), thrust(2), thrust(3), 'magenta')
+        thrust = R * Rz(psi(i)) * f0(:, i);
+        [patch_obj(i), beam_obj(i)] = draw_agent_quad(PP(:, i)', R * Rz(psi(i)), ci);
+        quiver_obj(i) = quiver3(PP(1, i), PP(2, i), PP(3, i), thrust(1), thrust(2), thrust(3), 'magenta'); hold on
     end
 
 end

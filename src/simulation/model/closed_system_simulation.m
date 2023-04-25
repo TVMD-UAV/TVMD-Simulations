@@ -246,3 +246,271 @@ function [u_t, u, attitude_d] = Controller_MinimumSnap(t, params, traj, y)
 
     u = M_d;
 end
+
+% endregion [Controller_MinimumSnap]
+
+% region [plotter]
+function plotter(t, r, dydt, y, inputs, outputs, refs, projectpath, foldername, filename)
+    rotation_matrix = true;
+
+    dirname = strcat(projectpath, foldername);
+
+    if not(isfolder(dirname))
+        mkdir(dirname)
+    end
+
+    % Marker style
+    makerstyle = false;
+
+    if makerstyle == true
+        lineStyle = ':';
+        markerStyle = 'o';
+    else
+        lineStyle = '--';
+        markerStyle = 'none';
+    end
+
+    % Extract parameters
+    Tf = inputs(:, 1);
+    u = inputs(:, 2:4);
+    w_m1 = inputs(:, 5);
+    w_m2 = inputs(:, 6);
+    eta_d = inputs(:, 7);
+    xi_d = inputs(:, 8);
+
+    % States
+    dW = dydt(:, 1:3);
+    W = y(:, 1:3); % Angular velocity
+    % Translational
+    ddP = dydt(:, 13:15);
+    dP = y(:, 13:15);
+    P = y(:, 16:18);
+    eta = y(:, 19);
+    xi = y(:, 20);
+
+    thrust = outputs(:, 1:3);
+    B_M_f = outputs(:, 4:6);
+    B_M_d = outputs(:, 7:9);
+    B_M_a = outputs(:, 10:12);
+    B_M_g = outputs(:, 13:15);
+    eR = outputs(:, 16:18);
+    eOmega = outputs(:, 19:21);
+    traj = reshape(refs(:, 1:12), [length(y), 3, 4]);
+    traj = permute(traj, [1, 3, 2]);
+    Q_d = refs(:, 13:15);
+    beta = refs(:, 16:18);
+    %tilde_mu = outputs(:, 26:28);
+    tilde_mu = zeros([length(y) 3]);
+
+    M_total = B_M_f + B_M_d - B_M_a - B_M_g;
+
+    % Rotational
+    if rotation_matrix == true
+        % Rotation matrix
+        R = reshape(y(:, 4:12), [length(y) 3 3]); % 3x3
+        eulZXY = rot2zxy_crossover(R);
+        attitude_d = Q_d(:, 1:3);
+        R = R(r, :, :);
+    else
+        % Quaternion
+        R = zeros([length(r) 3 3]);
+        Qs = y(:, 4:7); % Orientation
+        eulZXY = Qs(r, 2:4); % Euler angles
+
+        for i = 1:length(r)
+            R(i, :, :) = Q2R(Qs(r(i), :));
+        end
+
+        attitude_d = Q_d(:, 1:3);
+    end
+
+    CoP = P(:, 1:3);
+
+    key = {'projectpath', 'foldername', 'filename', 'lineStyle', 'markerStyle'};
+    value = {projectpath, foldername, filename, lineStyle, markerStyle};
+    options = containers.Map(key, value);
+
+    f = figure;
+    f.Position = [100 100 540 170];
+    plot(t, xi, 'DisplayName', '$$\xi$$', 'LineWidth', 2, 'LineStyle', '-', 'Color', '#0072BD'); hold on
+    plot(t, eta, 'DisplayName', '$$\eta$$', 'LineWidth', 2, 'LineStyle', '-', 'Color', '#D95319'); hold on
+    plot(t, xi_d, 'DisplayName', '$$\xi_d$$', 'LineWidth', 2, 'LineStyle', '--', 'Color', '#0072BD'); hold on
+    plot(t, eta_d, 'DisplayName', '$$\eta_d$$', 'LineWidth', 2, 'LineStyle', '--', 'Color', '#D95319'); hold on
+    ylabel('Shaft angle (rad)', 'FontName', 'Times New Roman', 'FontSize', 12)
+    xlabel('Time', 'FontName', 'Times New Roman', 'FontSize', 12)
+    hl = legend('show');
+    set(hl, 'Interpreter', 'latex')
+    legend('FontSize', 10)
+
+    saveas(gcf, strcat(options('projectpath'), options('foldername'), options('filename'), '_motor_command.svg'));
+    saveas(gcf, strcat(options('projectpath'), options('foldername'), options('filename'), '_motor_command.fig'));
+
+    f = figure;
+    f.Position = [100 100 540 300];
+    plot(t, B_M_f(:, 1), 'r-'); hold on
+    plot(t, B_M_f(:, 2), 'r-'); hold on
+    plot(t, B_M_f(:, 3), 'r-'); hold on
+    plot(t, B_M_d(:, 1), 'g-'); hold on
+    plot(t, B_M_d(:, 2), 'g-'); hold on
+    plot(t, B_M_d(:, 3), 'g-'); hold on
+    plot(t, B_M_g(:, 1), 'b-'); hold on
+    plot(t, B_M_g(:, 2), 'b-'); hold on
+    plot(t, B_M_g(:, 3), 'b-'); hold on
+    plot(t, B_M_a(:, 1), 'c-'); hold on
+    plot(t, B_M_a(:, 2), 'c-'); hold on
+    plot(t, B_M_a(:, 3), 'c-'); hold on
+
+    interval = ceil(length(t) / 40);
+    delta = ceil(interval / 4);
+    rr = 1:interval:length(t) - interval;
+    s1 = scatter(t(rr), B_M_f(rr, 1), 'r^', 'DisplayName', 'M_{f,x}', 'LineWidth', 1.5); hold on
+    s2 = scatter(t(rr), B_M_f(rr, 2), 'r', 'DisplayName', 'M_{f,y}', 'LineWidth', 1.5); hold on
+    s3 = scatter(t(rr), B_M_f(rr, 3), 'r+', 'DisplayName', 'M_{f,z}', 'LineWidth', 1.5); hold on
+    s4 = scatter(t(rr + delta), B_M_d(rr + delta, 1), 'g^', 'DisplayName', 'M_{d,x}', 'LineWidth', 1.5); hold on
+    s5 = scatter(t(rr + delta), B_M_d(rr + delta, 2), 'g', 'DisplayName', 'M_{d,y}', 'LineWidth', 1.5); hold on
+    s6 = scatter(t(rr + delta), B_M_d(rr + delta, 3), 'g+', 'DisplayName', 'M_{d,z}', 'LineWidth', 1.5); hold on
+    s7 = scatter(t(rr + delta * 2), B_M_g(rr + delta * 2, 1), 'b^', 'DisplayName', 'M_{g,x}', 'LineWidth', 1.5); hold on
+    s8 = scatter(t(rr + delta * 2), B_M_g(rr + delta * 2, 2), 'b', 'DisplayName', 'M_{g,y}', 'LineWidth', 1.5); hold on
+    s9 = scatter(t(rr + delta * 2), B_M_g(rr + delta * 2, 3), 'b+', 'DisplayName', 'M_{g,z}', 'LineWidth', 1.5); hold on
+    s10 = scatter(t(rr + delta * 3), B_M_a(rr + delta * 3, 1), 'c^', 'DisplayName', 'M_{a,x}', 'LineWidth', 1.5); hold on
+    s11 = scatter(t(rr + delta * 3), B_M_a(rr + delta * 3, 2), 'c', 'DisplayName', 'M_{a,y}', 'LineWidth', 1.5); hold on
+    s12 = scatter(t(rr + delta * 3), B_M_a(rr + delta * 3, 3), 'c+', 'DisplayName', 'M_{a,z}', 'LineWidth', 1.5); hold on
+
+    ylabel('Moment (Nm)', 'FontName', 'Times New Roman', 'FontSize', 12)
+    xlabel('Time', 'FontName', 'Times New Roman', 'FontSize', 12)
+    legend([s1, s2, s3, s4, s5, s6, s7, s8, s9, s10, s11, s12], 'NumColumns', 3, 'Orientation', 'horizontal', 'FontSize', 10)
+    saveas(gcf, strcat(options('projectpath'), options('foldername'), options('filename'), '_torque.svg'));
+    saveas(gcf, strcat(options('projectpath'), options('foldername'), options('filename'), '_torque.fig'));
+
+    f = figure;
+    f.Position = [100 100 540 300];
+    plot(t, u(:, 1), 'k--', 'DisplayName', 'Desired $$u_x$$', 'LineWidth', 2); hold on
+    plot(t, u(:, 2), 'k--', 'DisplayName', 'Desired $$u_y$$', 'LineWidth', 2); hold on
+    plot(t, u(:, 3), 'k--', 'DisplayName', 'Desired $$u_z$$', 'LineWidth', 2); hold on
+
+    plot(t, M_total(:, 1), 'k-', 'DisplayName', 'Resulting $$M_x$$', 'LineWidth', 2); hold on
+    plot(t, M_total(:, 2), 'k-', 'DisplayName', 'Resulting $$M_x$$', 'LineWidth', 2); hold on
+    plot(t, M_total(:, 3), 'k-', 'DisplayName', 'Resulting $$M_x$$', 'LineWidth', 2); hold on
+
+    s1 = scatter(t(rr + delta * 3), u(rr + delta * 3, 1), 'k^', 'DisplayName', 'Desired $$u_x$$', 'LineWidth', 1.5); hold on
+    s2 = scatter(t(rr + delta * 3), u(rr + delta * 3, 2), 'k', 'DisplayName', 'Desired $$u_y$$', 'LineWidth', 1.5); hold on
+    s3 = scatter(t(rr + delta * 3), u(rr + delta * 3, 3), 'k+', 'DisplayName', 'Desired $$u_z$$', 'LineWidth', 1.5); hold on
+
+    s4 = scatter(t(rr + delta * 3), M_total(rr + delta * 3, 1), 'b^', 'DisplayName', 'Resulting $$u_x$$', 'LineWidth', 1.5); hold on
+    s5 = scatter(t(rr + delta * 3), M_total(rr + delta * 3, 2), 'b', 'DisplayName', 'Resulting $$u_y$$', 'LineWidth', 1.5); hold on
+    s6 = scatter(t(rr + delta * 3), M_total(rr + delta * 3, 3), 'b+', 'DisplayName', 'Resulting $$u_z$$', 'LineWidth', 1.5); hold on
+    ylabel('Moment (Nm)', 'FontName', 'Times New Roman', 'FontSize', 12)
+    xlabel('Time', 'FontName', 'Times New Roman', 'FontSize', 12)
+    hl = legend([s1, s2, s3, s4, s5, s6], 'NumColumns', 3, 'Orientation', 'horizontal', 'FontSize', 10);
+    set(hl, 'Interpreter', 'latex')
+
+    %
+    f = figure;
+    f.Position = [100 100 300 300];
+    labely_pos = -1.5;
+    subplot(3, 1, 1)
+    plot(t, u(:, 1), 'k--', 'DisplayName', 'Desired', 'LineWidth', 2); hold on
+    plot(t, M_total(:, 1), 'k-', 'DisplayName', 'Actual', 'LineWidth', 2); hold on
+    labely = ylabel('$M_x$ (Nm)', 'interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', 12);
+    labely.Position(1) = labely_pos;
+    hl = legend('show', 'FontName', 'Times New Roman', 'FontSize', 10);
+    set(hl, 'Interpreter', 'latex')
+    xlim([0 4]);
+
+    subplot(3, 1, 2)
+    plot(t, u(:, 2), 'k--', 'DisplayName', 'Desired', 'LineWidth', 2); hold on
+    plot(t, M_total(:, 2), 'k-', 'DisplayName', 'Actual', 'LineWidth', 2); hold on
+    labely = ylabel('$M_y$ (Nm)', 'interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', 12);
+    labely.Position(1) = labely_pos;
+    hl = legend('show', 'FontName', 'Times New Roman', 'FontSize', 10);
+    set(hl, 'Interpreter', 'latex')
+    xlim([0 4]);
+
+    subplot(3, 1, 3)
+    plot(t, u(:, 3), 'k--', 'DisplayName', 'Desired', 'LineWidth', 2); hold on
+    plot(t, M_total(:, 3), 'k-', 'DisplayName', 'Actual', 'LineWidth', 2); hold on
+    labely = ylabel('$M_z$ (Nm)', 'interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', 12);
+    labely.Position(1) = labely_pos;
+    xlabel('Time (s)', 'FontName', 'Times New Roman', 'FontSize', 12)
+    hl = legend('show', 'FontName', 'Times New Roman', 'FontSize', 10);
+    set(hl, 'Interpreter', 'latex')
+    xlim([0 4]);
+    saveas(gcf, strcat(projectpath, foldername, filename, '_moment_diff.svg'));
+    saveas(gcf, strcat(projectpath, foldername, filename, '_moment_diff.fig'));
+
+    save('byrotor_moment_profile.mat', 'B_M_f', 'B_M_d', 'B_M_g', 'B_M_a', 't');
+
+    plot_3d(t, r, P, CoP, traj, thrust, R, options);
+    plot_state(t, P, dP, traj, W, beta, eulZXY, attitude_d, options);
+    plot_error(t, P, dP, traj, eR, eOmega, tilde_mu, options);
+    % plot_command(t, Tf, u, options);
+    % plot_state_norm(t, dP, P, traj, eulZXY, attitude_d, W, beta, options);
+    plot_state_norm(t, dP, P, traj, eR, eOmega, options);
+    % plot_torque(t, B_M_f, B_M_d, B_M_g, B_M_a, options);
+    % plot_motor_command(t, w_m1, w_m2, xi, eta, xi_d, eta_d, options);
+    % %plot_estimation(t, theta1, theta2, theta3, theta_a, theta_b, options);
+    % plot_animation(t, r, P, traj, options, R);
+end
+
+% endregion [plotter]
+
+% region [plot_state_norm]
+function plot_state_norm(t, dP, P, traj, eR, eOmega, options)
+    labely_pos = -2;
+
+    % Draw orientation
+    figure('Position', [10 10 540 400])
+    subplot(4, 1, 1);
+    plot(t, vecnorm(eR, 2, 2), 'DisplayName', 'Bi-rotor', 'LineWidth', 2, 'LineStyle', '--', 'Color', '#0072BD'); hold on
+    labely = ylabel({'$\Vert\mathbf{e}_\mathbf{R}\Vert_2$';'(rad)'} , 'interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', 12);
+    labely.Position(1) = labely_pos;
+    %xlabel('Time (s)')
+    %ylim([-0.1 0.1])
+    %title('Norm of orientation error')
+    %hl = legend('show', 'FontName', 'Times New Roman', 'FontSize', 10);
+    %set(hl, 'Interpreter', 'latex')
+    % Draw angular velocity
+    subplot(4, 1, 2);
+    plot(t, vecnorm(eOmega, 2, 2), 'DisplayName', 'Proposed', 'LineWidth', 2, 'LineStyle', '-', 'Color', '#0072BD'); hold on
+    %plot(t, vecnorm(W - beta, 2, 2), 'DisplayName', '$$\Vert\tilde{\Omega}\Vert$$', 'LineWidth', 2, 'LineStyle', '-', 'Color', '#0072BD'); hold on
+    labely = ylabel({'$\Vert\mathbf{e}_\Omega\Vert_2$'; '(rad/s)'}, 'interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', 12);
+    labely.Position(1) = labely_pos;
+    %xlabel('Time (s)')
+    %ylim([-0.2 0.2])
+    %title('Norm of angular velocity error')
+    %hl = legend('show', 'FontName', 'Times New Roman', 'FontSize', 10);
+    %set(hl, 'Interpreter', 'latex')
+    % Draw position
+    subplot(4, 1, 3);
+    plot(t, vecnorm(traj(:, 1:3, 1) - P, 2, 2), 'DisplayName', 'Proposed', 'LineWidth', 2, 'LineStyle', '-', 'Color', '#0072BD'); hold on
+    %plot(t, vecnorm(traj(:, 1:3, 1) - P, 2, 2), 'DisplayName', '$$\Vert\tilde{p}\Vert$$', 'LineWidth', 2, 'LineStyle', '-', 'Color', '#0072BD'); hold on
+    labley = ylabel({'$\Vert\mathbf{e}_\mathbf{p}\Vert_2$'; '(m)'}, 'interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', 12)
+    %labely.Position(1) = labely_pos;
+    labely.Position(1) = labely_pos;
+    pos = labely.Position
+    pos(1) = labely_pos
+    pos(2) = 1.2247
+    labley.Position = pos
+    %xlabel('Time (s)')
+    %title('Norm of position error')
+    %hl = legend('show', 'FontName', 'Times New Roman', 'FontSize', 10);
+    %set(hl, 'Interpreter', 'latex')
+    % Draw velocity
+    subplot(4, 1, 4);
+    plot(t, vecnorm(traj(:, 1:3, 2) - dP, 2, 2), 'DisplayName', 'Proposed', 'LineWidth', 2, 'LineStyle', '-', 'Color', '#0072BD'); hold on
+    %plot(t, vecnorm(traj(:, 1:3, 2) - dP, 2, 2), 'DisplayName', '$$\Vert\tilde{v}\Vert$$', 'LineWidth', 2, 'LineStyle', '-', 'Color', '#0072BD'); hold on
+    labely = ylabel({'$\Vert\mathbf{e}_\mathbf{v}\Vert_2$';'(m/s)'}, 'interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', 12);
+    labely.Position(1) = labely_pos;
+    xlabel('Time (s)', 'FontName', 'Times New Roman', 'FontSize', 12)
+    %ylim([-10 10])
+    %title('Norm of velocity error')
+    %hl = legend('show', 'FontName', 'Times New Roman', 'FontSize', 10);
+    %set(hl, 'Interpreter', 'latex')
+    % Draw acceleration
+
+    saveas(gcf, strcat(options('projectpath'), options('foldername'), options('filename'), '_state_norm.svg'));
+    saveas(gcf, strcat(options('projectpath'), options('foldername'), options('filename'), '_state_norm.fig'));
+    saveas(gcf, strcat(options('projectpath'), options('foldername'), options('filename'), '_state_norm.eps'));
+end
+
+% endregion [plot_state_norm]

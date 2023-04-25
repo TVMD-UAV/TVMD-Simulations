@@ -1,4 +1,9 @@
 function plotter_quaternion(t, r, dydt, y, inputs, outputs, projectpath, foldername, filename)    
+    dirname = strcat(projectpath, foldername);
+    if not(isfolder(dirname))
+        mkdir(dirname)
+    end
+    
     %% Marker style
     makerstyle = false;
     if makerstyle == true

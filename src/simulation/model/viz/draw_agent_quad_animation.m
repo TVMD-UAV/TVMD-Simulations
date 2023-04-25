@@ -1,4 +1,4 @@
-function draw_agent_quad_animation(patch_obj, P, R, ci)
+function draw_agent_quad_animation(patch_obj, beam_obj, P, R, ci)
     R = squeeze(R);
     radius = 0.5;
     height = 0.2;
@@ -10,6 +10,9 @@ function draw_agent_quad_animation(patch_obj, P, R, ci)
     vertices(1:4, 3) = height;
     vertices(5:8, 3) = -height;
     vertices = P + vertices * R';
+
+    mid_beam = [0 -radius 0; 0 radius 0];
+    mid_beam = P + mid_beam * R';
 
     % Colormap
     cmap = parula(256);
@@ -23,5 +26,9 @@ function draw_agent_quad_animation(patch_obj, P, R, ci)
     patch_obj.Vertices = vertices;
     patch_obj.Faces = face;
     patch_obj.EdgeColor = c;
+
+    beam_obj.XData = mid_beam(:, 1);
+    beam_obj.YData = mid_beam(:, 2);
+    beam_obj.ZData = mid_beam(:, 3);
     alpha(0.3);
 end

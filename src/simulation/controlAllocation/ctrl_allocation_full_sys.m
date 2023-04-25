@@ -3,12 +3,14 @@ addpath('../helper_functions')
 addpath('../model/model')
 addpath('../model/model/swarm_conf')
 
-projectpath = 'H:\\.shortcut-targets-by-id\\1_tImZc764OguGZ7irM7kqDx9_f6Tdqwi\\National Taiwan University\\Research\\Multidrone\\VTswarm\\src\\simulation\\model\\outputs\\1015_redistributed_full_dynamics\\r_50_rf_50\\';
+projectpath = 'H:\\我的雲端硬碟\\National Taiwan University\\Research\\Multidrone\\VTswarm\\src\\simulation\\outputs\\230223_conf_comparison\\';
 foldername = ["moore\\", "nullspace\\", "redistributed\\"];
+legends = ["moore", "nullspace", "RPI", "moore", "nullspace", "redistributed"];
 filename = 'swarm_allocation.mat';
 
-markers = ["o", "x", "^"];
-color = ["#0072BD", "#D95319", "#EDB120", "#7E2F8E"];
+markers = ["o", "x", "^", "x", "^", "square", "."];
+color = ["#0072BD", "#D95319", "#EDB120", "#D95319", "#EDB120"];
+lines = ["-", "-", "-"];
 
 [key, params] = get_swarm_params("model_A9_inc");
 n = length(params('psi'));
@@ -40,8 +42,8 @@ for i = 1:length(foldername)
 
     % Extract parameters
     u_d = inputs(:, 1:6);
-    F_d = inputs(:, 7:16);
-    u = inputs(:, 17:22);
+    F_d = inputs(:, 7:7+n-1);
+    u = inputs(:, 7+n:7+n+5);
 
     % States
     dW = dydt(:, 1:3);
@@ -56,6 +58,8 @@ for i = 1:length(foldername)
     B_M_d = outputs(:, 7:9);
     B_M_a = outputs(:, 10:12);
     B_M_g = outputs(:, 13:15);
+    eR = outputs(:, 16:18);
+    eOmega = outputs(:, 19:21);
     traj = reshape(refs(:, 1:12), [length(y), 3, 4]);
     traj = permute(traj, [1, 3, 2]);
     Q_d = refs(:, 13:15);
@@ -80,13 +84,14 @@ for i = 1:length(foldername)
 
     CoP = P(:, 1:3);
 
-    key = {'projectpath', 'foldername', 'filename', 'disp_name', 'markerStyle', 'color', 'marker_indice'};
+    key = {'projectpath', 'foldername', 'filename', 'disp_name', 'markerStyle', 'lineStyle', 'color', 'marker_indice'};
     % value = {foldername(i), markers(i), color(i), "none"};
-    value = {projectpath, foldername, filename, foldername(i), "none", color(i), 1};
+    % value = {projectpath, foldername, filename, foldername(i), "none", color(i), 1};
+    value = {projectpath, foldername, filename, legends(i), markers(i), lines(i), color(i), length(inputs)/5/length(foldername)*i};
     options = containers.Map(key, value);
 
-    plot_norm(t, dP, P, traj, eulZXY, attitude_d, W, beta, options);
-    plot_metrics(t, metrics(:, 1), metrics(:, 2), metrics(:, 3), metrics(:, 4), metrics(:, 5), options);
+    plot_norm(t, dP, P, traj, eR, eOmega, options);
+    plot_metrics(t, metrics(:, 1), metrics(:, 2), metrics(:, 3), (metrics(:, 4)+1)/2, (metrics(:, 5)+1)/2, options);
 end
 
 plot_norm_setup(options);
@@ -97,35 +102,40 @@ function plot_metrics_setup(options)
     projectpath = options('projectpath');
     filename = options('filename');
 
-    labely_pos = -0.3;
+    labely_pos = -0.6;
     f = figure(2);
-    f.Position = [700 100 600 800];
+    f.Position = [700 100 600 400];
     subplot(5, 1, 1);
-    labely = ylabel('Thrust efficiency (%)', 'FontName', 'Times New Roman', 'FontSize', 12);
+    labely = ylabel('TE (%)', 'FontName', 'Times New Roman', 'FontSize', 12);
     labely.Position(1) = labely_pos;
 
     subplot(5, 1, 2);
-    labely = ylabel('Force error (%)', 'FontName', 'Times New Roman', 'FontSize', 12);
+    ylim([0 70])
+    labely = ylabel('FE (%)', 'FontName', 'Times New Roman', 'FontSize', 12);
     labely.Position(1) = labely_pos;
 
     subplot(5, 1, 3);
     ylim([0 400])
-    labely = ylabel('Moment error (%)', 'FontName', 'Times New Roman', 'FontSize', 12);
+    labely = ylabel('ME (%)', 'FontName', 'Times New Roman', 'FontSize', 12);
     labely.Position(1) = labely_pos;
 
     subplot(5, 1, 4);
-    labely = ylabel('Forces alignment', 'FontName', 'Times New Roman', 'FontSize', 12);
+    labely = ylabel('FA', 'FontName', 'Times New Roman', 'FontSize', 12);
     labely.Position(1) = labely_pos;
 
     subplot(5, 1, 5);
-    labely = ylabel('Moments alignment', 'FontName', 'Times New Roman', 'FontSize', 12);
+    labely = ylabel('MA', 'FontName', 'Times New Roman', 'FontSize', 12);
     labely.Position(1) = labely_pos;
 
-    sgtitle('Metrics profile', 'FontName', 'Times New Roman', 'FontSize', 16)
+    xx = xlabel('Time (sec)', 'FontName', 'Times New Roman', 'FontSize', 10);
+    xx.Position(1) = 7
+
+    % sgtitle('Metrics profile', 'FontName', 'Times New Roman', 'FontSize', 16)
     hl = legend('show');
     hl.Position = [0.22, 0.02, 0.54, 0.045];
-    set(hl, 'Interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', 10, 'NumColumns', 3)
+    set(hl, 'Interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', 10, 'NumColumns', 3, 'Orientation', 'horizontal')
 
+    saveas(gcf, strcat(projectpath, filename, '_metrics.epsc'));
     saveas(gcf, strcat(projectpath, filename, '_metrics.svg'));
     saveas(gcf, strcat(projectpath, filename, '_metrics.fig'));
 end
@@ -136,24 +146,25 @@ end
 function plot_metrics(t, te, ef, em, df, dm, options)
     disp_name = options('disp_name');
     markerStyle = options('markerStyle');
+    lineStyle = options('lineStyle');
     color = options('color');
-    marker_indice = options('marker_indice');
+    marker_indice = floor(options('marker_indice'):length(t)/5:length(t));
 
     figure(2)
     subplot(5, 1, 1);
-    plot(t, te, 'DisplayName', disp_name, 'LineWidth', 2, 'LineStyle', '-', 'Color', color, 'Marker', markerStyle, 'MarkerIndices', marker_indice); hold on
+    plot(t, te, 'DisplayName', disp_name, 'LineWidth', 2, 'LineStyle', lineStyle, 'Color', color, 'Marker', markerStyle, 'MarkerIndices', marker_indice); hold on
 
     subplot(5, 1, 2);
-    plot(t, ef, 'DisplayName', disp_name, 'LineWidth', 2, 'LineStyle', '-', 'Color', color, 'Marker', markerStyle, 'MarkerIndices', marker_indice); hold on
+    plot(t, ef, 'DisplayName', disp_name, 'LineWidth', 2, 'LineStyle', lineStyle, 'Color', color, 'Marker', markerStyle, 'MarkerIndices', marker_indice); hold on
 
     subplot(5, 1, 3);
-    plot(t, em, 'DisplayName', disp_name, 'LineWidth', 2, 'LineStyle', '-', 'Color', color, 'Marker', markerStyle, 'MarkerIndices', marker_indice); hold on
+    plot(t, em, 'DisplayName', disp_name, 'LineWidth', 2, 'LineStyle', lineStyle, 'Color', color, 'Marker', markerStyle, 'MarkerIndices', marker_indice); hold on
 
     subplot(5, 1, 4);
-    plot(t, df, 'DisplayName', disp_name, 'LineWidth', 2, 'LineStyle', '-', 'Color', color, 'Marker', markerStyle, 'MarkerIndices', marker_indice); hold on
+    plot(t, df, 'DisplayName', disp_name, 'LineWidth', 2, 'LineStyle', lineStyle, 'Color', color, 'Marker', markerStyle, 'MarkerIndices', marker_indice); hold on
 
     subplot(5, 1, 5);
-    plot(t, dm, 'DisplayName', disp_name, 'LineWidth', 2, 'LineStyle', '-', 'Color', color, 'Marker', markerStyle, 'MarkerIndices', marker_indice); hold on
+    plot(t, dm, 'DisplayName', disp_name, 'LineWidth', 2, 'LineStyle', lineStyle, 'Color', color, 'Marker', markerStyle, 'MarkerIndices', marker_indice); hold on
 
     % saveas(gcf, strcat(options('projectpath'), options('foldername'), options('filename'), '_metrics.svg'));
     % saveas(gcf, strcat(options('projectpath'), options('foldername'), options('filename'), '_metrics.fig'));
@@ -166,35 +177,40 @@ function plot_norm_setup(options)
     projectpath = options('projectpath');
     filename = options('filename');
     n_subf = 4;
-    labely_pos = -0.3;
+    labely_pos = -0.4;
 
     % Draw orientation
     f = figure(1);
-    f.Position = [100 100 600 800];
+    f.Position = [100 100 600 400];
     subplot(n_subf, 1, 1);
-    labely = ylabel({'Orientation'; '$\Vert\tilde{q}\Vert$ (rad)'}, 'interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', 12);
+    ylim([0 1])
+    labely = ylabel({'$\Vert\mathbf{e}_\mathbf{R}\Vert_2$';'(rad)'}, 'interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', 12);
     labely.Position(1) = labely_pos;
 
     % Draw angular velocity
     subplot(n_subf, 1, 2);
-    labely = ylabel({'Angular velocity'; '$\Vert\tilde{\Omega}\Vert$ (rad/s)'}, 'interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', 12);
+    ylim([0 4])
+    labely = ylabel({'$\Vert\mathbf{e}_\Omega\Vert_2$';'(rad/s)'}, 'interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', 12);
     labely.Position(1) = labely_pos;
 
     % Draw position
     subplot(n_subf, 1, 3);
-    labely = ylabel({'Position'; '$\Vert\tilde{p}\Vert$ (m)'}, 'interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', 12);
+    ylim([0 4])
+    labely = ylabel({'$\Vert\mathbf{e}_\mathbf{p}\Vert_2$','(m)'}, 'interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', 12);
     labely.Position(1) = labely_pos;
 
     % Draw velocity
     subplot(n_subf, 1, 4);
-    labely = ylabel({'Velocity'; '$\Vert\tilde{v}\Vert$ (m/s)'}, 'interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', 12);
+    ylim([0 5])
+    labely = ylabel({'$\Vert\mathbf{e}_\mathbf{v}\Vert_2$','(m/s)'}, 'interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', 12);
     labely.Position(1) = labely_pos;
 
-    sgtitle('Error Norm profile', 'FontName', 'Times New Roman', 'FontSize', 16)
+    % sgtitle('Error Norm profile', 'FontName', 'Times New Roman', 'FontSize', 16)
     hl = legend('show');
     hl.Position = [0.22, 0.02, 0.54, 0.045];
-    set(hl, 'Interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', 10, 'NumColumns', 3)
+    set(hl, 'Interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', 10, 'NumColumns', 3, 'Orientation', 'horizontal')
 
+    saveas(gcf, strcat(projectpath, filename, '_norm.epsc'));
     saveas(gcf, strcat(projectpath, filename, '_norm.svg'));
     saveas(gcf, strcat(projectpath, filename, '_norm.fig'));
 end
@@ -202,31 +218,32 @@ end
 % end region [plot_norm]
 
 % region [plot_norm]
-function plot_norm(t, dP, P, traj, eulZXY, attitude_d, W, beta, options)
+function plot_norm(t, dP, P, traj, eR, eOmega, options)
     % lineStyle = options('lineStyle');
     disp_name = options('disp_name');
     markerStyle = options('markerStyle');
+    lineStyle = options('lineStyle');
     color = options('color');
-    marker_indice = options('marker_indice');
+    marker_indice = floor(options('marker_indice'):length(t)/5:length(t));
 
     n_subf = 4;
 
     % Draw orientation
     figure(1)
     subplot(n_subf, 1, 1);
-    plot(t, vecnorm(attitude_d - eulZXY, 2, 2), 'DisplayName', disp_name, 'LineWidth', 2, 'LineStyle', '-', 'Color', color, 'Marker', markerStyle, 'MarkerIndices', marker_indice); hold on
+    plot(t, vecnorm(eR, 2, 2), 'DisplayName', disp_name, 'LineWidth', 2, 'LineStyle', lineStyle, 'Color', color, 'Marker', markerStyle, 'MarkerIndices', marker_indice); hold on
 
     % Draw angular velocity
     subplot(n_subf, 1, 2);
-    plot(t, vecnorm(W - beta, 2, 2), 'DisplayName', disp_name, 'LineWidth', 2, 'LineStyle', '-', 'Color', color, 'Marker', markerStyle, 'MarkerIndices', marker_indice); hold on
+    plot(t, vecnorm(eOmega, 2, 2), 'DisplayName', disp_name, 'LineWidth', 2, 'LineStyle', lineStyle, 'Color', color, 'Marker', markerStyle, 'MarkerIndices', marker_indice); hold on
 
     % Draw position
     subplot(n_subf, 1, 3);
-    plot(t, vecnorm(traj(:, 1:3, 1) - P, 2, 2), 'DisplayName', disp_name, 'LineWidth', 2, 'LineStyle', '-', 'Color', color, 'Marker', markerStyle, 'MarkerIndices', marker_indice); hold on
+    plot(t, vecnorm(traj(:, 1:3, 1) - P, 2, 2), 'DisplayName', disp_name, 'LineWidth', 2, 'LineStyle', lineStyle, 'Color', color, 'Marker', markerStyle, 'MarkerIndices', marker_indice); hold on
 
     % Draw velocity
     subplot(n_subf, 1, 4);
-    plot(t, vecnorm(traj(:, 1:3, 2) - dP, 2, 2), 'DisplayName', disp_name, 'LineWidth', 2, 'LineStyle', '-', 'Color', color, 'Marker', markerStyle, 'MarkerIndices', marker_indice); hold on
+    plot(t, vecnorm(traj(:, 1:3, 2) - dP, 2, 2), 'DisplayName', disp_name, 'LineWidth', 2, 'LineStyle', lineStyle, 'Color', color, 'Marker', markerStyle, 'MarkerIndices', marker_indice); hold on
 end
 
 % end region [plot_norm]

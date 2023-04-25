@@ -41,11 +41,11 @@ control_pretty_print(a, b, F)
 vec'
 te = thrust_efficiency(a, b, F);
 [ef, em, df, dm] = output_error(u_d, vec);
-fprintf("Thrust efficiency: %.4f\n", te)
-fprintf("Force error:       %.4f\n", ef)
-fprintf("Moment error:      %.4f\n", em)
-fprintf("Force alignment:   %.4f\n", df)
-fprintf("Moment alignment:  %.4f\n", dm)
+fprintf("Thrust efficiency: \t%.4f\n", te)
+fprintf("Force error:       \t%.4f\n", ef)
+fprintf("Moment error:      \t%.4f\n", em)
+fprintf("Force alignment:   \t%.4f\n", df)
+fprintf("Moment alignment:  \t%.4f\n", dm)
 
 % Moore
 fprintf("\n\nMoore Penrose\n")
@@ -56,11 +56,26 @@ control_pretty_print(a, b, F)
 vecs'
 te = thrust_efficiency(a, b, F);
 [ef, em, df, dm] = output_error(u_d, vecs);
-fprintf("Thrust efficiency: %.4f\n", te)
-fprintf("Force error:       %.4f\n", ef)
-fprintf("Moment error:      %.4f\n", em)
-fprintf("Force alignment:   %.4f\n", df)
-fprintf("Moment alignment:  %.4f\n", dm)
+fprintf("Thrust efficiency: \t%.4f\n", te)
+fprintf("Force error:       \t%.4f\n", ef)
+fprintf("Moment error:      \t%.4f\n", em)
+fprintf("Force alignment:   \t%.4f\n", df)
+fprintf("Moment alignment:  \t%.4f\n", dm)
+
+% Interior
+fprintf("\n\nInterior point\n")
+[a, b, R, F] = allocator_interior_point(u_d, W, conf, a0, b0, f0);
+[a, b, F] = output_saturation(conf, n, a, b, F, a0, b0, f0, dt);
+vecs = full_dof_mixing(pos, psi, a, b, F);
+control_pretty_print(a, b, F)
+vecs'
+te = thrust_efficiency(a, b, F);
+[ef, em, df, dm] = output_error(u_d, vecs);
+fprintf("Thrust efficiency: \t%.4f\n", te)
+fprintf("Force error:       \t%.4f\n", ef)
+fprintf("Moment error:      \t%.4f\n", em)
+fprintf("Force alignment:   \t%.4f\n", df)
+fprintf("Moment alignment:  \t%.4f\n", dm)
 
 saveas(gcf, strcat(options('projectpath'), options('foldername'), options('filename'), '_state_norm.svg'));
 saveas(gcf, strcat(options('projectpath'), options('foldername'), options('filename'), '_state_norm.fig'));

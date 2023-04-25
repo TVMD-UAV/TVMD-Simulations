@@ -1,12 +1,12 @@
-function plot_error(t, P, dP, traj, W, beta, eulZXY, attitude_d, tilde_mu, options)
+function plot_error(t, P, dP, traj, eR, eOmega, tilde_mu, options)
     lineStyle = options('lineStyle');
     markerStyle = options('markerStyle');
     %% Draw orientation
     figure('Position', [10 10 800 1000])
     subplot(5, 1, 1);
-    plot(t, attitude_d(:, 1) - eulZXY(:, 1),'DisplayName','Yaw $$\psi$$','LineWidth',2, 'LineStyle','-', 'Color', '#0072BD'); hold on 
-    plot(t, attitude_d(:, 2) - eulZXY(:, 2),'DisplayName','Roll $$\phi$$','LineWidth',2, 'LineStyle','-', 'Color', '#D95319'); hold on 
-    plot(t, attitude_d(:, 3) - eulZXY(:, 3),'DisplayName','Pitch $$\theta$$','LineWidth',2, 'LineStyle','-', 'Color', '#EDB120'); hold on 
+    plot(t, eR(:, 1),'DisplayName','$$\mathbf{R}_x$$','LineWidth',2, 'LineStyle','-', 'Color', '#0072BD'); hold on 
+    plot(t, eR(:, 2),'DisplayName','$$\mathbf{R}_y$$','LineWidth',2, 'LineStyle','-', 'Color', '#D95319'); hold on 
+    plot(t, eR(:, 3),'DisplayName','$$\mathbf{R}_z$$','LineWidth',2, 'LineStyle','-', 'Color', '#EDB120'); hold on 
     ylabel('rad')
     xlabel('time')
     ylim([-0.1 0.1])
@@ -16,9 +16,9 @@ function plot_error(t, P, dP, traj, W, beta, eulZXY, attitude_d, tilde_mu, optio
 
     %% Draw angular velocity
     subplot(5, 1, 2);
-    plot(t, W(:, 1) - beta(:, 1),'DisplayName','Yaw $$\omega_x$$','LineWidth',2, 'LineStyle','-', 'Color', '#0072BD'); hold on 
-    plot(t, W(:, 2) - beta(:, 2),'DisplayName','Roll $$\omega_y$$','LineWidth',2, 'LineStyle','-', 'Color', '#D95319'); hold on 
-    plot(t, W(:, 3) - beta(:, 3),'DisplayName','Pitch $$\omega_z$$','LineWidth',2, 'LineStyle','-', 'Color', '#EDB120'); hold on 
+    plot(t, eOmega(:, 1),'DisplayName','$$\Omega_x$$','LineWidth',2, 'LineStyle','-', 'Color', '#0072BD'); hold on 
+    plot(t, eOmega(:, 2),'DisplayName','$$\Omega_y$$','LineWidth',2, 'LineStyle','-', 'Color', '#D95319'); hold on 
+    plot(t, eOmega(:, 3),'DisplayName','$$\Omega_z$$','LineWidth',2, 'LineStyle','-', 'Color', '#EDB120'); hold on 
     ylabel('rad/s')
     xlabel('time')
     ylim([-0.2 0.2])

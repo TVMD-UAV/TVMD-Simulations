@@ -28,7 +28,7 @@ f_amp = 2;
 m_amp = 1;
 k = 3;
 l = 0.2;
-u = [5 + f_amp * sin(l * t.^k); f_amp * sin(l * t.^k + pi / 3); f_amp * sin(l * t.^k + 2 * pi / 3) + 10;
+u = [5 + f_amp * sin(l * t.^k); f_amp * sin(l * t.^k + pi / 3); 0 * sin(l * t.^k + 2 * pi / 3) + 10;
     m_amp * sin(l * t.^k); m_amp * sin(l * t.^k + pi / 3); m_amp * sin(l * t.^k + 2 * pi / 3)];
 
 % Weights for agents
@@ -53,9 +53,13 @@ bs = zeros([n n_sample]);
 
 for i = 1:n_sample
     % [eta, xi, F, v] = allocator_moore_penrose(u(:, i), conf);
-    % [eta, xi, R, F] = allocator_interior_point(u(:, i), W, conf);
+    % [eta, xi, R, F] = allocator_interior_point(u(:, i), W, conf, a0, b0, f0);
     % [eta, xi, F] = allocator_nullspace(u(:, i), conf, f0, a0, b0, dt);
     [eta, xi, F] = allocator_redistributed_nonlinear(u(:, i), conf, a0, b0, f0, W, dt);
+
+    % [eta, xi, F, v] = allocator_moore_penrose(u(:, i), conf);
+    % [a1, b1, f1] = output_saturation(conf, n, eta, xi, F, a0, b0, f0, dt);
+    % [eta, xi, F] = allocator_redistributed_nonlinear(u(:, i), conf, a1, b1, f1, W, dt);
 
     [eta, xi, F] = output_saturation(conf, n, eta, xi, F, a0, b0, f0, dt);
     vecs(:, i) = full_dof_mixing(P, psi, eta, xi, F);

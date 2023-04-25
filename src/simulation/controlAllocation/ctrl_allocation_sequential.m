@@ -2,23 +2,25 @@ close all;
 clear all;
 addpath('../helper_functions')
 
-projectpath = 'H:\\.shortcut-targets-by-id\\1_tImZc764OguGZ7irM7kqDx9_f6Tdqwi\\National Taiwan University\\Research\\Multidrone\\VTswarm\\src\\simulation\\model\\outputs\\1012_redistributed_alg\\chirp_';
-foldername = ["moore\\", "nullspace\\", "redistributed\\", "interior\\"];
-filename = 'allocation_test.mat';
+projectpath = 'H:\\我的雲端硬碟\\National Taiwan University\\Research\\Multidrone\\VTswarm\\src\\simulation\\outputs\\230210_fullpose_conf_seq\\A10-Con\\';
+% foldername = ["moore\\", "nullspace\\", "redistributed\\", "interior\\"];
+foldername = ["moore\\", "nullspace\\", "interior\\", "redistributed\\"];
+legends = ["moore", "nullspace", "interior", "RPI"];
+filename = 'allocation_seq.mat';
 
-markers = ["o", "x", "^", "."];
-color = ["#0072BD", "#D95319", "#EDB120", "#7E2F8E", "#77AC30"];
+markers = ["o", "x", "^", "square", "."];
+color = ["#0072BD", "#D95319", "#77AC30", "#EDB120", "#7E2F8E", "#77AC30"];
 
 for i = 1:length(foldername)
     full_path = strcat(projectpath, foldername(i), filename);
     load(full_path)
 
     key = {'projectpath', 'foldername', 'filename', 'disp_name', 'markerStyle', 'color', 'marker_indice'};
-    value = {projectpath, foldername, filename, foldername(i), "none", color(i), 1};
+    value = {projectpath, foldername, filename, legends(i), "none", color(i), 1};
     options = containers.Map(key, value);
 
     plot_outputs(t, vecs, options);
-    plot_metrics(t, te, ef, em, df, dm, options);
+    plot_metrics(t, te, ef, em, (df+1)/2, (dm+1)/2, options);
 end
 
 key = {'projectpath', 'foldername', 'filename', 'disp_name', 'markerStyle', 'color', 'marker_indice'};
@@ -33,36 +35,44 @@ function plot_metrics_setup(options)
     projectpath = options('projectpath');
     filename = options('filename');
 
-    labely_pos = -0.6;
+    labely_pos = -0.5;
     f = figure(2);
-    f.Position = [700 100 600 800];
+    f.OuterPosition = [700 100 1000 1000];
+    f.InnerPosition = [100 100 600 450];
     subplot(5, 1, 1);
-    labely = ylabel('Thrust efficiency (%)', 'FontName', 'Times New Roman', 'FontSize', 12);
+    labely = ylabel('TE (%)', 'FontName', 'Times New Roman', 'FontSize', 10);
     labely.Position(1) = labely_pos;
 
     subplot(5, 1, 2);
-    labely = ylabel('Force error (%)', 'FontName', 'Times New Roman', 'FontSize', 12);
+    labely = ylabel('FE (%)', 'FontName', 'Times New Roman', 'FontSize', 10);
+    ylim([0 20])
     labely.Position(1) = labely_pos;
 
     subplot(5, 1, 3);
-    labely = ylabel('Moment error (%)', 'FontName', 'Times New Roman', 'FontSize', 12);
+    labely = ylabel('ME (%)', 'FontName', 'Times New Roman', 'FontSize', 10);
+    ylim([0 100])
     labely.Position(1) = labely_pos;
 
     subplot(5, 1, 4);
-    labely = ylabel('Forces alignment', 'FontName', 'Times New Roman', 'FontSize', 12);
+    labely = ylabel('FA', 'FontName', 'Times New Roman', 'FontSize', 10);
+    ylim([0.99 1])
     labely.Position(1) = labely_pos;
 
     subplot(5, 1, 5);
-    labely = ylabel('Moments alignment', 'FontName', 'Times New Roman', 'FontSize', 12);
+    labely = ylabel('MA', 'FontName', 'Times New Roman', 'FontSize', 10);
+    ylim([0.8 1])
     labely.Position(1) = labely_pos;
 
-    sgtitle('Metrics profile', 'FontName', 'Times New Roman', 'FontSize', 16)
+    xx = xlabel('Time (sec)', 'FontName', 'Times New Roman', 'FontSize', 10);
+    xx.Position(1) = 7
+    % sgtitle('Metrics Profile', 'FontName', 'Times New Roman', 'FontSize', 16)
     hl = legend('show');
-    hl.Position = [0.22, 0.02, 0.54, 0.045];
-    set(hl, 'Interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', 10, 'NumColumns', 3)
+    hl.Position = [0.22, 0.03, 0.54, 0.045];
+    set(hl, 'Interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', 10, 'NumColumns', 4)
 
     saveas(gcf, strcat(projectpath, filename, '_metrics.svg'));
     saveas(gcf, strcat(projectpath, filename, '_metrics.fig'));
+    saveas(gcf, strcat(projectpath, filename, '_metrics.epsc'));
 end
 
 % end region [plot_metrics_setup]
@@ -144,6 +154,7 @@ function plot_outputs_setup(t, u, options)
 
     saveas(gcf, strcat(projectpath, filename, '_norm.svg'));
     saveas(gcf, strcat(projectpath, filename, '_norm.fig'));
+    saveas(gcf, strcat(projectpath, filename, '_norm.epsc'));
 end
 
 % end region [plot_outputs]

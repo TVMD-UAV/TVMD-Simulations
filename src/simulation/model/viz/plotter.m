@@ -1,8 +1,15 @@
 function plotter(t, r, dydt, y, inputs, outputs, refs, projectpath, foldername, filename)
-    rotation_matrix=true;
+    rotation_matrix = true;
+
+    dirname = strcat(projectpath, foldername);
+
+    if not(isfolder(dirname))
+        mkdir(dirname)
+    end
 
     %% Marker style
     makerstyle = false;
+
     if makerstyle == true
         lineStyle = ':';
         markerStyle = 'o';
@@ -16,18 +23,18 @@ function plotter(t, r, dydt, y, inputs, outputs, refs, projectpath, foldername, 
     u = inputs(:, 2:4);
     w_m1 = inputs(:, 5);
     w_m2 = inputs(:, 6);
-    xi_d = inputs(:, 7);
-    eta_d = inputs(:, 8);
+    eta_d = inputs(:, 7);
+    xi_d = inputs(:, 8);
 
     % States
     dW = dydt(:, 1:3);
-    W = y(:, 1:3);        % Angular velocity
+    W = y(:, 1:3); % Angular velocity
     % Translational
     ddP = dydt(:, 13:15);
     dP = y(:, 13:15);
     P = y(:, 16:18);
-    xi = y(:, 19);
-    eta = y(:, 20);
+    eta = y(:, 19);
+    xi = y(:, 20);
 
     thrust = outputs(:, 1:3);
     B_M_f = outputs(:, 4:6);
@@ -51,13 +58,16 @@ function plotter(t, r, dydt, y, inputs, outputs, refs, projectpath, foldername, 
     else
         % Quaternion
         R = zeros([length(r) 3 3]);
-        Qs = y(:, 4:7);       % Orientation
-        eulZXY = Qs(r, 2:4);  % Euler angles
-        for i=1:length(r)
+        Qs = y(:, 4:7); % Orientation
+        eulZXY = Qs(r, 2:4); % Euler angles
+
+        for i = 1:length(r)
             R(i, :, :) = Q2R(Qs(r(i), :));
         end
+
         attitude_d = Q_d(:, 1:3);
     end
+
     CoP = P(:, 1:3);
 
     key = {'projectpath', 'foldername', 'filename', 'lineStyle', 'markerStyle'};
@@ -68,6 +78,7 @@ function plotter(t, r, dydt, y, inputs, outputs, refs, projectpath, foldername, 
     plot_state(t, P, dP, traj, W, beta, eulZXY, attitude_d, options);
     plot_error(t, P, dP, traj, W, beta, eulZXY, attitude_d, tilde_mu, options);
     plot_command(t, Tf, u, options);
+    plot_state_norm(t, dP, P, traj, eulZXY, attitude_d, W, beta, options);
     %plot_norm(t, dP, P, traj, eulZXY, attitude_d, W, beta, theta1, theta_a, options);
     plot_torque(t, B_M_f, B_M_d, B_M_g, B_M_a, options);
     plot_motor_command(t, w_m1, w_m2, xi, eta, xi_d, eta_d, options);

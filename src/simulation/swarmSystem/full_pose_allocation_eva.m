@@ -1,5 +1,6 @@
 addpath('../model/model')
 addpath('../helper_functions')
+addpath('../controlAllocation/controller')
 [key, conf] = get_swarm_params();
 
 b1r = [1; 0; 0];
@@ -8,7 +9,8 @@ b3r = b3r / norm(b3r);
 
 f_r = [10; -20; -20];
 % [theta, b3] = analytic(conf, b1r, b3r, f_r)
-[theta, b3] = bisection(20, conf, b1r, b3r, f_r)
+% [theta, b3] = bisection(20, conf, b1r, b3r, f_r)
+[theta] = ctrl_sat_square_bisection(20, conf, b1r, b3r, f_r);
 
 k = cross(b3r, f_r) / norm(cross(b3r, f_r));
 nb3 = rot_vec_by_theta(b3r, k, theta);
