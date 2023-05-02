@@ -19,7 +19,9 @@ function [Tf_d, eta_xd, eta_yd, N_esp, c, packed_meta, packed_detail, packed_tw,
     packed_intersections = zeros([n, n, 3, 3]);
 
     if rate_cons
+        f0 = pinv(M, pinv_tol) * u_d;
         [Tf0, eta_x0, eta_y0] = z2raw(n, z, env_params);
+        [Tf0, eta_x0, eta_y0] = calc_shrink_control(drone_params, dt, Tf0, eta_x0, eta_y0, f0);
         [lower_x, upper_x, lower_y, upper_y] = solve_upper_lower_bounds(drone_params, dt, Tf0, eta_x0, eta_y0);
         packed_meta = [lower_x upper_x lower_y upper_y];
         %Tf0(Tf0 > f_max) = f_max;  % scaling down a bit
@@ -61,7 +63,7 @@ function [Tf_d, eta_xd, eta_yd, N_esp, c, packed_meta, packed_detail, packed_tw,
             N_esp(i_star(l)) = 0;
             sat_order(idx) = i_star(l);
         end
-        %N_esp(i_star) = 0;
+
         d = d_max;
 
         if d_max > 1 - c
@@ -93,4 +95,34 @@ function [Tf_d, eta_xd, eta_yd, N_esp, c, packed_meta, packed_detail, packed_tw,
                      (eta_yd > upper_y) .* (eta_yd - upper_y).^2);
     %alignment = (u_d(4:6)' * (M(4:6, :) * u0)) / (norm(u_d(4:6)) * norm(M(4:6, :) * u0));
     %validness = alignment;
+end
+
+
+function M_inv = weighted_pinv(M, W, pinv_tol)
+    M_inv = W \ M' * pinv(M / W * M', pinv_tol);
+end
+
+function [Tf, eta_x, eta_y] = calc_shrink_control(drone_params, dt, Tf, eta_x, eta_y, f0)
+    sigma_x = drone_params.sigma_a;
+    sigma_y = drone_params.sigma_b;
+    r_sigma_x = drone_params.r_sigma_a;
+    r_sigma_y = drone_params.r_sigma_b;
+    f_max = drone_params.f_max;
+    r_f = drone_params.r_f;
+
+    % todo: only shrink the agent when the direction is outward admissible set
+    n = length(drone_params.psi);
+    [f1, x1, y1] = inverse_input(n, f0);
+
+    eta_x = sat(eta_x, -sigma_x + r_sigma_x*dt*(x1<=-sigma_x), sigma_x - r_sigma_x*dt*(x1>=sigma_x));
+    eta_y = sat(eta_y, -sigma_y + r_sigma_y*dt*(y1<=-sigma_y), sigma_y - r_sigma_y*dt*(y1>=sigma_y));
+    % Tf = sat(Tf, 0 + r_f*dt*(f1<=0), f_max - r_f*dt*(f1>=f_max));
+    Tf = sat(Tf, 0 + r_f*dt, f_max - r_f*dt*(f1>=f_max));
+    % eta_x = sat(eta_x, -sigma_x + r_sigma_x*dt, sigma_x - r_sigma_x*dt);
+    % eta_y = sat(eta_y, -sigma_y + r_sigma_y*dt, sigma_y - r_sigma_y*dt);
+    % Tf = sat(Tf, 0 + r_f*dt, f_max - r_f*dt);
+end
+
+function x = sat(x, l, h)
+    x = min(max(x, l), h);
 end
