@@ -1,4 +1,4 @@
-function [dxdt, dzdt] = swarm_model(x, z, z_d, env_params, drone_params)
+function [dxdt, dzdt] = tvmd_model(x, z, z_d, env_params, drone_params)
     % region [Parameters]
     g = env_params.g; % gravity
     rho = env_params.rho; % kg/m3
@@ -27,7 +27,13 @@ function [dxdt, dzdt] = swarm_model(x, z, z_d, env_params, drone_params)
     
     % Drone
     m = drone_params.m;     % Body Mass
-    I_b = drone_params.I_b; % Body Inertial
+    m_a = drone_params.m_a;    % Single agent actuator mass, Kg
+    m_fm = drone_params.m_fm;  % Single agent frame mass, Kg
+    I_b = drone_params.I_b; % Body Inertia
+    I_a = drone_params.I_a; % Actuator Inertia
+    I_P = drone_params.I_P; % Actuator Inertia
+    r_pg = drone_params.r_pg;  % Leverage length from c.p. to c.g.
+    r_fm = drone_params.r_fm;  % Leverage length from c.fm. to c.g.
     % end region [Parameters]
     
     pos = drone_params.pos;
@@ -49,20 +55,20 @@ function [dxdt, dzdt] = swarm_model(x, z, z_d, env_params, drone_params)
     %% Actuator Model
     [A_z, B_z, C_z] = gen_actuator_model(mKp, mKd, pKp);
     % Propeller model
-    beta_allo = [CT_u CT_l; prop_d * CP_u -prop_d * CP_l];
+    % beta_allo = [CT_u CT_l; prop_d * CP_u -prop_d * CP_l];
+    beta_allo = drone_params.beta_allo;
     P_prop = rho * prop_d^4 * beta_allo;
+    B_M_HighOrder = [0;0;0];
     
     for i = 1:n
         % Actuator Model
         zi = z(6 * (i - 1) + 1 : 6 * i);
         z_di = z_d(4*(i-1)+1 : 4*i);
 
+        % region [Actuator Dynamics]
+        % Saturation
         z_low = [-sigma_x; -r_sigma_x; -sigma_y; -r_sigma_y; sigma_w0; sigma_w0];
         z_upp = [ sigma_x;  r_sigma_x;  sigma_y;  r_sigma_y;  sigma_w(1);  sigma_w(2)];
-        
-        % Saturation
-        %z_low = [-sigma_x; -r_sigma_x; -sigma_y; -r_sigma_y; sigma_w0; -r_sigma_w];
-        %z_upp = [ sigma_x;  r_sigma_x;  sigma_y;  r_sigma_y;  sigma_w;  r_sigma_w];
         zi = min(z_upp, max(z_low, zi));
         dzdti = A_z * zi + B_z * z_di;
 
@@ -78,14 +84,40 @@ function [dxdt, dzdt] = swarm_model(x, z, z_d, env_params, drone_params)
         dzdti(3) = (~reaching_bound_y) * dzdti(3);
         dzdti(5:6) = (~reaching_bound_w) .* dzdti(5:6);
 
-        %dzdt(6 * (i - 1) + 1 : 6 * i) = A_z * zi + B_z * z_d;
+        %dzdt(6 * (i - 1) + 1 : 6 * i) = A_z * zi + B_z * z_d;   % unbounded
         dzdt(6 * (i - 1) + 1 : 6 * i) = dzdti;
     
         zio = C_z * zi;
-        TfTdi = P_prop * zio(3:4, 1).^2;
+        TfTdi = P_prop * zio(3:4, 1).^2;                         % [u_f; u_tau]
         Tf(i) = TfTdi(1);
         eta_x(i) = zio(1);
         eta_y(i) = zio(2);
+        % end region [Actuator Dynamics]
+
+        % region [Moments]
+        Bi_R_Ai = Ry(zio(2, 1)) * Rx(zio(1, 1));
+        Bi_J_Ai = Bi_R_Ai * I_a * Bi_R_Ai';
+        Bi_I_Pi = Bi_R_Ai * I_P * Bi_R_Ai';
+        Ai_Omega_Ai = [zi(2, 1); zi(4, 1); 0];
+        Bi_Omega_Ai = Bi_R_Ai * Ai_Omega_Ai;
+        d_Ai_Omega_Ai = [dzdti(2, 1); dzdti(4, 1); 0];
+
+        % Thrust moment
+        Bi_M_Ti = cross(r_pg, Bi_R_Ai * [0; 0; TfTdi(1)]);
+        % Drag moment
+        % TODO: check direction of drag moment
+        Bi_M_Di = Bi_R_Ai * [0; 0; TfTdi(2)];
+        % Adverse reactionary moment
+        Bi_M_Ai = - (Bi_I_Pi + Bi_J_Ai) * Bi_R_Ai * d_Ai_Omega_Ai;
+        % Gyroscopic moment
+        Bi_M_Gi = - Bi_I_Pi * Bi_R_Ai * skew(Ai_Omega_Ai) * [0; 0; zio(3, 1)-zio(4, 1)];
+        % Higher
+        Bi_M_Delta = - cross(Bi_Omega_Ai, Bi_J_Ai * Bi_Omega_Ai);
+        % Total
+        Bi_M = Bi_M_Ti + Bi_M_Di + Bi_M_Ai + Bi_M_Gi + Bi_M_Delta;
+        B_M_Bi = Rz(psi(i)) * Bi_M;
+        B_M_HighOrder = B_M_HighOrder + B_M_Bi;
+        % end region [Moments]
     end
     
     u = full_dof_mixing(pos, psi, eta_x, eta_y, Tf);
@@ -95,11 +127,11 @@ function [dxdt, dzdt] = swarm_model(x, z, z_d, env_params, drone_params)
     ddP = ([0; 0; -m * g] + I_thrust) / m;
     
     % Rotational
-    B_M = -cross(W, I_b * W) + u(4:6);
+    B_M = -cross(W, I_b * W) + u(4:6) + B_M_HighOrder;
     dW = I_b \ B_M;
     dQ = reshape(I_R_B * skew(W), [9 1]);
 
-dxdt = [dW; dQ; ddP; dP];
+    dxdt = [dW; dQ; ddP; dP];
 end
 
 function [A_z, B_z, C_z] = gen_actuator_model(mKp, mKd, pKp)
