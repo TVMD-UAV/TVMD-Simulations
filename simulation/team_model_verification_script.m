@@ -9,7 +9,7 @@ addpath('system_model/team_conf')
 addpath('visualization')  
 addpath('visualization/viz_helper')  
 close all
-run('initialization/init_params_team.m')
+run('initialization/init_params_team.m')    
 open_system('SwarmSystem_2021b');
 model = 'SwarmSystem_2021b';
 simIn = Simulink.SimulationInput(model);
@@ -161,11 +161,11 @@ function [simIn, options, ctrl_params, traj_params, initial_state_x0, traj_type]
     sim_time = 30;
     simIn = setModelParameter(simIn,"StopTime", string(sim_time));
 
-    projectpath = "C:\\Users\\NTU\\Documents\\Projects\\Multidrone\\outputs\\single_tracking";
+    projectpath = "C:\\Users\\NTU\\Documents\\Projects\\Multidrone\\outputs\\team_tracking";
     % projectname = "moving";
     % projectname = "tilted";
     projectname = "sine_forward";
-    filename = "sing_track_forward";
+    filename = "team_track_forward";
 
     traj_type = "sine";
 
@@ -193,21 +193,21 @@ function [simIn, options, ctrl_params, traj_params, initial_state_x0, traj_type]
     sim_time = 30;
     simIn = setModelParameter(simIn,"StopTime", string(sim_time));
 
-    projectpath = "C:\\Users\\NTU\\Documents\\Projects\\Multidrone\\outputs\\single_tracking";
+    projectpath = "C:\\Users\\NTU\\Documents\\Projects\\Multidrone\\outputs\\team_tracking";
     projectname = "sine_upward";
-    filename = "sing_track_upward";
+    filename = "team_track_upward";
 
     traj_type = "sine";
 
-    ctrl_params.Kp = diag([1 0.5 1]) * 0.2;
-    ctrl_params.Kd = diag([1 0.5 1]) * 1.0;
-    ctrl_params.Kr = diag([5 1 1]) * 3;
-    ctrl_params.Ko = diag([5 1 1]) * 3;
+    ctrl_params.Kp = diag([1 1 1]) * 2;
+    ctrl_params.Kd = diag([1 1 1]) * 5;
+    ctrl_params.Kr = diag([1 1 1]) * 30;
+    ctrl_params.Ko = diag([1 1 1]) * 80;
     
-    traj_params.amps = [1; 1; 1; 0; 0; 0];
+    traj_params.amps = [5; 5; 1; 0.4; 0; 0];
     traj_params.phase = [0; pi/2; 0; 0; 0; 0];
-    traj_params.freq = [0.5; 0.5; 0; 0; 0; 0];
-    traj_params.offset = [0 0; 0 0; 0.2 0; 0 -pi/4; 0 0; 0 0];
+    traj_params.freq = [0.5; 0.5; 0; 0.1; 0; 0];
+    traj_params.offset = [0 0; 0 0; 0.5 0; 0 -pi/4; 0 0; 0 0];
 
     W0 = [0.1 0.1 0.1]';
     R0 = reshape(eye(3) * getI_R_B(0.2, 0.2, 0.2), [9 1]);

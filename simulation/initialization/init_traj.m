@@ -17,17 +17,18 @@ end
 
 function traj_func = traj_sine(drone_type, traj_params)
     syms ts
-    %zeta = [3 * sin(1 * ts); 2 * ts; 3 * sin(1 * ts); 0 * ts-pi/3; 0 * ts; 0 * ts-pi/2];
-    %zeta = [3*sin(1*ts); 2*ts; 1*sin(1*ts); 0 * ts-pi/4; 0 * ts; 0 * ts-pi/2];
     if drone_type == "single"
         zeta = [traj_params.amps(1) * sin(traj_params.freq(1)*ts + traj_params.phase(1)) + traj_params.offset(1,1)*ts + traj_params.offset(1,2); 
                 traj_params.amps(2) * sin(traj_params.freq(2)*ts + traj_params.phase(2)) + traj_params.offset(2,1)*ts + traj_params.offset(2,2); 
                 traj_params.amps(3) * sin(traj_params.freq(3)*ts + traj_params.phase(3)) + traj_params.offset(3,1)*ts + traj_params.offset(3,2); 
                 traj_params.amps(4) * sin(traj_params.freq(4)*ts + traj_params.phase(4)) + traj_params.offset(4,1)*ts + traj_params.offset(4,2)];
     else
-        %zeta = [3 * sin(1 * ts); 2 * ts; 3 * sin(1 * ts); 0 * ts-pi/3; 0 * ts; 0 * ts-pi/2];
-        %zeta = [3*sin(1*ts); 2*ts; 1*sin(1*ts); 0 * ts-pi/4; 0 * ts; 0 * ts-pi/2];
-        zeta = [3*sin(1*ts); 2*ts; 1*sin(1*ts); 0 * ts-pi/4; 0 * ts; 0 * ts-pi/2];
+        zeta = [traj_params.amps(1) * sin(traj_params.freq(1)*ts + traj_params.phase(1)) + traj_params.offset(1,1)*ts + traj_params.offset(1,2); 
+                traj_params.amps(2) * sin(traj_params.freq(2)*ts + traj_params.phase(2)) + traj_params.offset(2,1)*ts + traj_params.offset(2,2); 
+                traj_params.amps(3) * sin(traj_params.freq(3)*ts + traj_params.phase(3)) + traj_params.offset(3,1)*ts + traj_params.offset(3,2); 
+                traj_params.amps(4) * sin(traj_params.freq(4)*ts + traj_params.phase(4)) + traj_params.offset(4,1)*ts + traj_params.offset(4,2);
+                traj_params.amps(5) * sin(traj_params.freq(5)*ts + traj_params.phase(5)) + traj_params.offset(5,1)*ts + traj_params.offset(5,2);
+                traj_params.amps(6) * sin(traj_params.freq(6)*ts + traj_params.phase(6)) + traj_params.offset(6,1)*ts + traj_params.offset(6,2)];
     end
     d_zeta = diff(zeta);
     dd_zeta = diff(d_zeta);

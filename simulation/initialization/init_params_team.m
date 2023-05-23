@@ -133,8 +133,8 @@ function drone_params = gen_drone_params(env_params, conf_name)
             %I_b = I_b + I_fm + m * diag([x2(2) + x2(3); x2(1) + x2(3); x2(2) + x2(1)]);
             I_b = I_b + drone_params.I_b + drone_params.m * (pos(:, i)' * pos(:, i) * eye(3) - pos(:, i) * pos(:, i)');
         end
-        drone_params.I_b = I_b;
-        drone_params.m = drone_params.m * size(pos, 2);
+        drone_params.I_bb = I_b;
+        drone_params.mb = drone_params.m * size(pos, 2);
     end 
 end
 
