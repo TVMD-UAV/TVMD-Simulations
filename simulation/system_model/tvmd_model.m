@@ -1,4 +1,4 @@
-function [dxdt, dzdt] = tvmd_model(x, z, z_d, env_params, drone_params)
+function [dxdt, dzdt, meta, u] = tvmd_model(x, z, z_d, env_params, drone_params)
     % region [Parameters]
     g = env_params.g; % gravity
     rho = env_params.rho; % kg/m3
@@ -130,6 +130,7 @@ function [dxdt, dzdt] = tvmd_model(x, z, z_d, env_params, drone_params)
     B_M = -cross(W, I_b * W) + u(4:6) + B_M_HighOrder;
     dW = I_b \ B_M;
     dQ = reshape(I_R_B * skew(W), [9 1]);
+    meta = zeros([3 5]);
 
     dxdt = [dW; dQ; ddP; dP];
 end
