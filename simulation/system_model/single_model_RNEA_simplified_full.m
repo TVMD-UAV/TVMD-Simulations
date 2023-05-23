@@ -1,6 +1,7 @@
-% The original RNEA method (rotational part only)
+% The simplified model using RNEA method (including translational and rotational parts)
+% Using this form, meaningful results can be extracted
 
-function [dxdt, dzdt, meta, T_f, wrench] = single_model_RNEA(x, z, z_d, env_params, drone_params)
+function [dxdt, dzdt, meta, T_f, wrench] = single_model_RNEA_simplified(x, z, z_d, env_params, drone_params)
     % region [Parameters]
     g = env_params.g; % gravity
     rho = env_params.rho; % kg/m3
@@ -31,12 +32,14 @@ function [dxdt, dzdt, meta, T_f, wrench] = single_model_RNEA(x, z, z_d, env_para
     m = drone_params.m;     % Body Mass
     m_a = drone_params.m_a;    % Single agent actuator mass, Kg
     m_fm = drone_params.m_fm;  % Single agent frame mass, Kg
+    m_p = drone_params.m_p;
     I_b = drone_params.I_b; % Body Inertia
     I_fm = drone_params.I_fm; % Body Inertia
     I_a = drone_params.I_a; % Actuator Inertia
     I_P = drone_params.I_P; % Actuator Inertia
     r_pg = drone_params.r_pg;  % Leverage length from c.p. to c.g.
     r_fm = drone_params.r_fm;  % Leverage length from c.fm. to c.g.
+    l_pa = drone_params.l_pa;
     % end region [Parameters]
 
     % State extraction
@@ -91,6 +94,9 @@ function [dxdt, dzdt, meta, T_f, wrench] = single_model_RNEA(x, z, z_d, env_para
     dw_m1 = dzdt(5);
     dw_m2 = dzdt(6);
 
+    theta_P1 = 0;
+    theta_P2 = 0;
+    
     %% Parameters
     % Transformations
     B_R_A = Ry(eta_y) * Rx(eta_x);
@@ -113,39 +119,73 @@ function [dxdt, dzdt, meta, T_f, wrench] = single_model_RNEA(x, z, z_d, env_para
 
     % Wrenches from Propellers
     thrust = B_R_A * [0; 0; T_f];
+    I_thrust = I_R_B * thrust;
     B_M_f = cross(r_pg, thrust);
-    P_T_d = [0; 0; T_d];
-
-    B_dW_B = -B_J \ cross(B_W_B, B_J * B_W_B) + B_M_f + B_R_P * P_T_d;
+    B_T_d = B_R_A * [0; 0; T_d];
+    B_V_B = dP; B_W_B = W;
+    B_dV_B = [0; 0; -g] + I_thrust / m;
+    B_dW_B = -B_J \ cross(B_W_B, B_J * B_W_B) + B_M_f + B_T_d;
 
     %% Recursive Newton-Euler Algorithm
-    % Forward dynamics
+    % Forward dynamcis
     A_W_A = B_R_A' * B_W_B + A_W_AB;
     A_dW_A = B_R_A' * B_dW_B + cross(A_W_A, A_W_AB) + A_dW_AB;
+    A_V_A = skew(Rx(eta_x)'*[0;0;-r_pg(3)]) * B_R_A' * B_W_B + B_R_A' * B_V_B;
+    A_dV_A = skew(Rx(eta_x)'*[0;0;-r_pg(3)]) * B_R_A' * B_dW_B + B_R_A' * B_dV_B + skew(A_V_A) * A_W_AB;
 
     P_W_P1 = A_R_P' * A_W_A + P_W_P1A;
     P_dW_P1 = A_R_P' * A_dW_A + cross(P_W_P1, P_W_P1A) + P_dW_P1A;
+    P_V_P1 = skew([0;0;-l_pa]) * A_R_P' * A_W_A + A_R_P' * A_V_A;
+    P_dV_P1 = skew([0;0;-l_pa]) * A_R_P' * A_dW_A + A_R_P' * A_dV_A + skew(P_V_P1) * P_W_P1A;
 
     P_W_P2 = A_R_P' * A_W_A + P_W_P2A;
     P_dW_P2 = A_R_P' * A_dW_A + cross(P_W_P2, P_W_P2A) + P_dW_P2A;
+    P_V_P2 = skew([0;0;l_pa]) * A_R_P' * A_W_A + A_R_P' * A_V_A;
+    P_dV_P2 = skew([0;0;l_pa]) * A_R_P' * A_dW_A + A_R_P' * A_dV_A + skew(P_V_P2) * P_W_P2A;
 
-    % Backward dynamics
-    P_T_P1 = I_P * P_dW_P1 + cross(P_W_P1, I_P * P_W_P1);
-    P_T_P2 = I_P * P_dW_P2 + cross(P_W_P2, I_P * P_W_P2);
-    A_T_A = A_R_P * (P_T_P1 + P_T_P2) + I_a * A_dW_A + cross(A_W_A, I_a * A_W_A);
+
+    % Adverse Reactionary Moment
+    kA1 = (2*B_J_P + B_J_A) * B_dW_B ...
+        + (2*B_J_P + B_J_A) * B_R_A * A_dW_AB ...
+        + B_J_P * B_R_P * P_dW_P1A ...
+        + B_J_P * B_R_P * P_dW_P2A;
+
+    % Gyroscopic Moment
+    B1 = B_W_B + B_R_A * A_W_AB;
+    BP1 = B1 + B_R_P * P_W_P1A;
+    BP2 = B1 + B_R_P * P_W_P2A;
+    kB1 = (2*B_J_P + B_J_A) * cross(B_W_B, B_R_A * A_W_AB) ...
+        + B_J_P * cross(B_W_B + B_R_A * A_W_AB, B_R_P * P_W_P1A) ...
+        + B_J_P * cross(B_W_B + B_R_A * A_W_AB, B_R_P * P_W_P2A) ...
+        + cross(BP1, B_J_P * BP1) ... 
+        + cross(BP2, B_J_P * BP2);
+
+    % Delta
+    kC1 = cross(B1, B_J_A * B1) ...
+        + A_R_P * cross(P_V_P1, m_p * P_V_P1) ...
+        + A_R_P * cross(P_V_P2, m_p * P_V_P2) ...
+        + cross(A_V_A, m_a * A_V_A);
+
+    % Total Internal Moment from {A} to {B}
+    B_T_A = kA1 + kB1 + kC1;
+
+    % Translational
+    P_f_P1 = m_p * P_dV_P1 + skew(P_W_P1)*(m_p*P_V_P1);
+    P_f_P2 = m_p * P_dV_P2 + skew(P_W_P2)*(m_p*P_V_P2);
+    A_f_A = (A_R_P * P_f_P1 + A_R_P * P_f_P2) + m_a * A_dV_A + skew(A_W_A)*(m_a*A_V_A);
 
     %% Dynamics
     % Translational
     I_thrust = I_R_B * thrust;
-    ddP = ([0; 0; -g] + I_thrust / m);
+    ddP = ([0; 0; -g] + I_thrust / m) - B_R_A * A_f_A;
     
     % Rotational
-    B_M = -cross(W, I_b * W) - B_R_A * A_T_A + B_M_f + B_R_A * P_T_d;
+    B_M = -cross(W, I_b * W) - B_T_A + B_T_d + B_M_f;
     dW = B_J \ B_M;
     dQ = reshape(I_R_B * skew(W), [9 1]);
 
     wrench = [I_thrust; B_M];
-    meta = [B_M_f B_R_A*P_T_d -B_R_A*A_T_A -cross(W,I_b*W) B_M];
+    meta = [B_M_f B_T_d -kB1 -kA1 -kC1];
 
     dxdt = [dW; dQ; ddP; dP];
 end

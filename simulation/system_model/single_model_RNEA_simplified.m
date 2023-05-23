@@ -1,5 +1,5 @@
-% The simplified model using RNEA method
-% Using this form, meaningful results can be extracted
+% The simplified model using RNEA method (rotational part only)
+% Using this formulation, meaningful results can be extracted
 
 function [dxdt, dzdt, meta, T_f, wrench] = single_model_RNEA_simplified(x, z, z_d, env_params, drone_params)
     % region [Parameters]

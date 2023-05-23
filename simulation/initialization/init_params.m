@@ -31,10 +31,12 @@ function drone_params = gen_drone_params(env_params, conf_name)
     % Single Drone
     drone_params.m   = 0.67434;
     drone_params.m_a = 0.13048; % Mass, Kg
+    drone_params.m_p = 0.0005; % Mass, Kg
     drone_params.m_fm = drone_params.m - drone_params.m_a;
 
     drone_params.r_pg = [0; 0; 0.026]; % Leverage length from c.p. to c.g.
     drone_params.r_fm = [0; 0; -6.237e-3]; % Leverage length from c.fm. to c.g.
+    drone_params.l_pa = 0.0784;
 
     % Inertia
     drone_params.I_fm = ...
@@ -159,8 +161,8 @@ end
 
 function [x0, z0] = gen_initial_state(drone_params)
     W0 = [0 0 0]';
-    R0 = reshape(eye(3) * getI_R_B(0.5, 0, 0.5), [9 1]);
-    P0 = [2 2 1]';
+    R0 = reshape(eye(3) * getI_R_B(0, 0, 0), [9 1]);
+    P0 = [0 0 0]';
     dP0 = [0 0 0]';
     x0 = [W0; R0; dP0; P0];
 
