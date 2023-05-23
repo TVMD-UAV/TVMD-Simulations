@@ -10,7 +10,7 @@ function plot_state(t, ts, P, dP, x_r, W, W_d, eulZXY, attitude_d, options)
     p_r = squeeze(x_r(1:3, 1, :));
     v_r = squeeze(x_r(1:3, 2, :));
 
-    figure('Position', [410 10 500 600])
+    figure('Position', [410 10 400 600])
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %% Draw orientation

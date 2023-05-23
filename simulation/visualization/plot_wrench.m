@@ -13,7 +13,7 @@ function plot_wrench(t, u_d, u, options)
     legend_font_size = options('legend_font_size');
     labely_pos = options('labely_pos');
 
-    figure('Position', [910 10 500 600])
+    figure('Position', [810 10 400 600])
     subplot(6, 1, 1);
     plot(t, u_d(1, :), 'DisplayName', '$$F_x$$', 'LineWidth', 2, 'LineStyle', '--', 'Color', '#0072BD'); hold on
     plot(t, u(1, :), 'DisplayName', '$$F_x$$', 'LineWidth', 2, 'LineStyle', '-', 'Color', '#0072BD');

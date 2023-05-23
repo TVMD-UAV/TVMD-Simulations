@@ -7,7 +7,7 @@ function plot_constraints_profile_with_rates(n, lower, upper, t, z_d, ts, z, nam
     % Bounds
     xx = [t(1); t(end)];
 
-    figure('Position', [1410+pos_offset(1) 10+pos_offset(2) 400 300])
+    figure('Position', [1410+pos_offset(1) 10+pos_offset(2) 400 200])
 
     % State
     subplot(2, 1, 1);

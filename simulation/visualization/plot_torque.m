@@ -14,7 +14,7 @@ function plot_torque(t, B_M, options)
     interval = ceil(length(t) / 10); 
     delta = ceil(interval / 5);
 
-    figure('Position', [10 510 400 500])
+    figure('Position', [1210 10 400 500])
     for k=1:3
         subplot(3, 1, k)
         for i=1:5
