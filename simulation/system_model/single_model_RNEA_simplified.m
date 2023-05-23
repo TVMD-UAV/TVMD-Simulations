@@ -117,7 +117,7 @@ function [dxdt, dzdt, meta, T_f, wrench] = single_model_RNEA_simplified(x, z, z_
     B_M_f = cross(r_pg, thrust);
     B_T_d = B_R_A * [0; 0; T_d];
 
-    B_dW_B = -B_J \ cross(B_W_B, B_J * B_W_B) + B_M_f + B_T_d;
+    B_dW_B = -B_J \ (cross(B_W_B, B_J * B_W_B) + B_M_f + B_T_d);
 
     %% Recursive Newton-Euler Algorithm
     % Adverse Reactionary Moment

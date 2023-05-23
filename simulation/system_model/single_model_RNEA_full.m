@@ -132,8 +132,8 @@ function [dxdt, dzdt, meta, T_f, wrench] = single_model_RNEA_full(x, z, z_d, env
     C_F_e = [B_M_f + B_R_A * P_T_d; m * [0; 0; -g] + I_thrust];
 
     B_V_B = dP; B_W_B = W;
-    B_dW_B = -I_b \ cross(B_W_B, I_b * B_W_B) + B_M_f + B_R_A * P_T_d;
-    B_dV_B = [0; 0; -g] + I_thrust / m;
+    B_dW_B = -I_b \ (cross(B_W_B, I_b * B_W_B) + B_M_f + B_R_A * P_T_d);
+    B_dV_B = I_R_B' * [0; 0; -g] + thrust / m;
     V_C  = [W; B_V_B];
     dV_C = [B_dW_B; B_dV_B];
 
@@ -159,8 +159,7 @@ function [dxdt, dzdt, meta, T_f, wrench] = single_model_RNEA_full(x, z, z_d, env
     
     dQ = reshape(I_R_B * skew(W), [9 1]);
     dW = dV_Cn(1:3);
-    ddP = dV_Cn(4:6);
-    % ddP = ([0; 0; -g] + I_thrust / m);
+    ddP = I_R_B * dV_Cn(4:6);
 
     C_F_A = - Ad(A_T_C)' * A_F_A;
     C_F_A2 = ad(V_C)' * G_B * V_C;
@@ -173,10 +172,10 @@ end
 function AdT = Ad(T)
     AdT = [T(1:3, 1:3) zeros([3 3]);
            skew(T(1:3,4))*T(1:3, 1:3) T(1:3, 1:3)];
- end
+end
  
- function adV = ad(V)
+function adV = ad(V)
     adV = [skew(V(1:3)) zeros([3 3]);
            skew(V(4:6)) skew(V(1:3))];
- end 
+end 
  

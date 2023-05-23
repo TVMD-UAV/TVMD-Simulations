@@ -119,12 +119,11 @@ function [dxdt, dzdt, meta, T_f, wrench] = single_model_RNEA_simplified(x, z, z_
 
     % Wrenches from Propellers
     thrust = B_R_A * [0; 0; T_f];
-    I_thrust = I_R_B * thrust;
     B_M_f = cross(r_pg, thrust);
     B_T_d = B_R_A * [0; 0; T_d];
     B_V_B = dP; B_W_B = W;
-    B_dV_B = [0; 0; -g] + I_thrust / m;
-    B_dW_B = -B_J \ cross(B_W_B, B_J * B_W_B) + B_M_f + B_T_d;
+    B_dV_B = I_R_B' * [0; 0; -g] + thrust / m;
+    B_dW_B = -B_J \ (cross(B_W_B, B_J * B_W_B) + B_M_f + B_T_d);
 
     %% Recursive Newton-Euler Algorithm
     % Forward dynamcis
@@ -177,7 +176,8 @@ function [dxdt, dzdt, meta, T_f, wrench] = single_model_RNEA_simplified(x, z, z_
     %% Dynamics
     % Translational
     I_thrust = I_R_B * thrust;
-    ddP = ([0; 0; -g] + I_thrust / m) - B_R_A * A_f_A;
+    B_dv_B = (I_R_B' * [0; 0; -g] + thrust / m) - B_R_A * A_f_A - m * cross(W, dP);
+    ddP = I_R_B * B_dv_B;
     
     % Rotational
     B_M = -cross(W, I_b * W) - B_T_A + B_T_d + B_M_f;
