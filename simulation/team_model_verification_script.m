@@ -28,7 +28,7 @@ simIn = Simulink.SimulationInput(model);
 out = sim(simIn);
 matfilename = strcat(options('foldername'), options('filename'))
 save(matfilename, 'drone_params', 'env_params', 'ctrl_params', 'out', 'dt', 'initial_state_x0', 'initial_state_z0');
-plotter(drone_params, out, options);
+plotter(env_params, drone_params, out, options);
 
 function [simIn, options, ctrl_params] = thrust_verification(simIn, ctrl_params)
     sim_time = 0.1;
@@ -218,7 +218,7 @@ function [simIn, options, ctrl_params, traj_params, initial_state_x0, traj_type]
     options = gen_project_options_subtask(projectpath, projectname, filename, sim_time, true);
 end
 
-function plotter(drone_params, out, options)
+function plotter(env_params, drone_params, out, options)
     % region [Data Decoding]
     % States
     n = length(drone_params.psi);
@@ -276,13 +276,8 @@ function plotter(drone_params, out, options)
     [A_z, B_z, C_z] = gen_actuator_model(mKp, mKd, pKp);    
     zo = z * (kron(eye(n), C_z)');
 
-    num_slot = 20;
-    if t(end) * 1 < num_slot; num_slot = t(end) * 0.2; end
-    interval = floor(num_sample / num_slot);
-    fprintf("Ploting interval: %d\n", interval);
-    r = 1:interval:num_sample;
-    plot_3d(ts, r, p, p, x_r, u, R, options);
-
+    plot_team_animation(env_params, drone_params, 20, t, interp1(ts, p, t), interp1(ts, R, t), x_r, interp1(ts, zo, t), options);
+    plot_team_3d(env_params, drone_params, 20, ts, p, R, x_r, zo, options, false);
     plot_norm(t, eX, eV, eR, eOmega, options);
     plot_state(t, ts, p, v, x_r, omega, omega_d, eulZXY, attitude_d, options);
     plot_wrench(t, u_d, u, options)
