@@ -131,7 +131,7 @@ function [dxdt, dzdt, meta, T_f, wrench] = single_model_RNEA_full(x, z, z_d, env
     I_thrust = I_R_B * thrust;
     C_F_e = [B_M_f + B_R_A * P_T_d; m * [0; 0; -g] + I_thrust];
 
-    B_V_B = dP; B_W_B = W;
+    B_V_B = I_R_B' * dP; B_W_B = W;
     B_dW_B = -I_b \ (cross(B_W_B, I_b * B_W_B) + B_M_f + B_R_A * P_T_d);
     B_dV_B = I_R_B' * [0; 0; -g] + thrust / m;
     V_C  = [W; B_V_B];

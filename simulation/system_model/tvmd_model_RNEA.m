@@ -92,9 +92,9 @@ function [dxdt, dzdt, meta, u] = tvmd_model_RNEA(x, z, z_d, env_params, drone_pa
     end
 
     C_u = full_dof_mixing(pos, psi, eta_x, eta_y, Tf);
-    B_dW_B = -I_bb \ (cross(W, I_bb * W) + C_u(4:6));
+    B_dW_B = I_bb \ (C_u(4:6) - cross(W, I_bb * W));
     B_dV_B = I_R_B' * [0; 0; -g] + C_u(1:3) / mb;
-    V_C  = [W; dP];
+    V_C  = [W; I_R_B' * dP];
     dV_C = [B_dW_B; B_dV_B];
     
     for i = 1:n
