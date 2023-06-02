@@ -17,7 +17,7 @@ function plot_torque(t, B_M, options)
     figure('Position', [1210 10 400 500])
     for k=1:3
         subplot(3, 1, k)
-        for i=1:5
+        for i=1:size(B_M, 2)
             M = squeeze(B_M(:, i, :));
             plot(t, M(k, :), "color", color(i), "Marker", marker(k), 'MarkerIndices', delta*i:interval:length(t), ...
                 'DisplayName', torque_name(i)); hold on 

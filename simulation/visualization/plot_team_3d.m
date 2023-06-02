@@ -1,7 +1,7 @@
 function plot_team_3d(env_params, drone_params, num_slot, t, P, R, traj, zo, options, adjust_campos)
     camproj perspective
     n = length(drone_params.psi);
-    figure('Position', [10 10 1200 1200])
+    figure('Position', [10 10 800 800])
 
     if t(end) * 1 < num_slot; num_slot = t(end) * 0.2; end
     interval = floor(length(t) / num_slot);
@@ -35,11 +35,11 @@ function plot_team_3d(env_params, drone_params, num_slot, t, P, R, traj, zo, opt
         for i = 1:length(r)
             f0 = get_f(eta_x(r(i), :)', eta_y(r(i), :)', Tf(r(i), :)');
             f0 = reshape(f0, [3 n]) * 0.1;
-            plot_3kg_swarm(drone_params, P(r(i), :), R(i, :, :), 1 + 256 * t(r(i)) / t(end), f0); hold on
+            plot_3kg_swarm(drone_params, P(r(i), :), R(r(i), :, :), 1 + 256 * t(r(i)) / t(end), f0); hold on
         end
     else
         for i = 1:length(r)
-            draw_agent_quad(P(r(i), :), R(i, :, :), 1 + 256 * t(r(i)) / t(end)); hold on
+            draw_agent_quad(P(r(i), :), R(r(i), :, :), 1 + 256 * t(r(i)) / t(end)); hold on
         end
     end 
 

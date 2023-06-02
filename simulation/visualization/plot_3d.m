@@ -16,7 +16,7 @@ function plot_3d(t, r, P, CoP, traj, thrust, R, options)
 
     % Draw agent body
     for i = 1:length(r)
-        draw_agent_quad(P(r(i), :), R(i, :, :), 1 + 256 * t(r(i)) / t(end)); hold on
+        draw_agent_quad(P(r(i), :), R(r(i), :, :), 1 + 256 * t(r(i)) / t(end)); hold on
     end
 
     xlabel('$x$', 'interpreter', 'latex', 'FontSize', 12)
@@ -32,9 +32,5 @@ function plot_3d(t, r, P, CoP, traj, thrust, R, options)
     set(gcf, 'Renderer', 'painters')
     set(gca, 'DataAspectRatio', [1 1 1])
     print(gcf, '-depsc', 'test.eps')
-    % saveas(gcf, strcat(options('projectpath'), options('foldername'), options('filename'), '_3d.png'));
-    % saveas(gcf, strcat(options('projectpath'), options('foldername'), options('filename'), '_3d.svg'));
-    % saveas(gcf, strcat(options('projectpath'), options('foldername'), options('filename'), '_3d.eps'));
-    % saveas(gcf, strcat(options('projectpath'), options('foldername'), options('filename'), '_3d.fig'));
     savefig_helper(options, '_3d');
 end

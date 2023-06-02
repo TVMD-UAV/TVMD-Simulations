@@ -36,6 +36,7 @@ function plot_wrench(t, u_d, u, options)
     subplot(6, 1, 4);
     plot(t, u_d(4, :), 'DisplayName', '$$M_x$$', 'LineWidth', 2, 'LineStyle', '--', 'Color', '#0072BD'); hold on
     plot(t, u(4, :), 'DisplayName', '$$M_x$$', 'LineWidth', 2, 'LineStyle', '-', 'Color', '#0072BD');
+    ylim([-2, 2]);
     labely = ylabel('${\mathbf{u}_\tau}_x$ (Nm)', 'interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', 12);
     labely.Position(1) = labely_pos;
     title('Moments', 'FontName', 'Times New Roman', 'FontSize', title_font_size)
@@ -43,12 +44,14 @@ function plot_wrench(t, u_d, u, options)
     subplot(6, 1, 5);
     plot(t, u_d(5, :), 'DisplayName', '$$M_y$$', 'LineWidth', 2, 'LineStyle', '--', 'Color', '#D95319'); hold on
     plot(t, u(5, :), 'DisplayName', '$$M_y$$', 'LineWidth', 2, 'LineStyle', '-', 'Color', '#D95319');
+    ylim([-2, 2]);
     labely = ylabel('${\mathbf{u}_\tau}_y$ (Nm)', 'interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', 12);
     labely.Position(1) = labely_pos;
 
     subplot(6, 1, 6);
     plot(t, u_d(6, :), 'DisplayName', '$$M_z$$', 'LineWidth', 2, 'LineStyle', '--', 'Color', '#EDB120'); hold on
     plot(t, u(6, :), 'DisplayName', '$$M_z$$', 'LineWidth', 2, 'LineStyle', '-', 'Color', '#EDB120');
+    ylim([-2, 2]);
     labely = ylabel('${\mathbf{u}_\tau}_z$ (Nm)', 'interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', 12);
     labely.Position(1) = labely_pos;
     xlabel('$$t$$ (sec)', 'interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', label_font_size)
