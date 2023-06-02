@@ -1,6 +1,7 @@
 % Default drone type
 drone_type = "team";
-conf_name = "model_A9_con";
+% conf_name = "model_A9_con";
+conf_name = "model_A9_inc";
 
 % Default task type
 traj_type = "regulation";
@@ -67,11 +68,11 @@ function drone_params = gen_drone_params(env_params, conf_name)
     % Actuator Constraints
     drone_params.sigma_a = pi / 6;
     drone_params.sigma_b = pi / 2;
-    drone_params.r_sigma_a = 5 * pi / 6; % eta, x-axis
-    drone_params.r_sigma_b = 5 * pi / 2; % xi, y-axis
+    drone_params.r_sigma_a = 50 * pi / 6; % eta, x-axis
+    drone_params.r_sigma_b = 50 * pi / 2; % xi, y-axis
 
     % Motor Constraints
-    drone_params.f_max = 1.5 * env_params.g;
+    drone_params.f_max = 1.5 * drone_params.m * env_params.g;
     drone_params.r_f = 50;
 
     drone_params.sigma_w0 = 0;
@@ -131,7 +132,8 @@ function drone_params = gen_drone_params(env_params, conf_name)
         for i = 1:length(pos)
             %x2 = pos(:, i).^2;
             %I_b = I_b + I_fm + m * diag([x2(2) + x2(3); x2(1) + x2(3); x2(2) + x2(1)]);
-            I_b = I_b + drone_params.I_b + drone_params.m * (pos(:, i)' * pos(:, i) * eye(3) - pos(:, i) * pos(:, i)');
+            I_b = I_b + drone_params.m * (pos(:, i)' * pos(:, i) * eye(3) - pos(:, i) * pos(:, i)');
+            % drone_params.I_b + 
         end
         drone_params.I_bb = I_b;
         drone_params.mb = drone_params.m * size(pos, 2);
@@ -139,10 +141,10 @@ function drone_params = gen_drone_params(env_params, conf_name)
 end
 
 function ctrl_params = gen_ctrl_params()
-    ctrl_params.Kp = diag([1 0.5 1]) * 0.1;
-    ctrl_params.Kd = diag([1 0.5 1]) * 0.5;
-    ctrl_params.Kr = diag([5 1 1]) * 1;
-    ctrl_params.Ko = diag([5 1 1]) * 1;
+    ctrl_params.Kp = diag([1 1 1]) * 2;
+    ctrl_params.Kd = diag([1 1 1]) * 5;
+    ctrl_params.Kr = diag([1 1 1]) * 5;
+    ctrl_params.Ko = diag([1 1 1]) * 10;
 
     ctrl_params.ext_ctrl = false;
     ctrl_params.ext_u_f = 0;
@@ -150,6 +152,10 @@ function ctrl_params = gen_ctrl_params()
 
     ctrl_params.ext_zctrl = false;
     ctrl_params.ext_z_d = 0;
+
+    ctrl_params.ud_pypass = false;
+    ctrl_params.zd_pypass = false;
+    ctrl_params.attitude_planner_non_neg_constraint = false;
 end
 
 function traj_params = gen_traj_params()
@@ -166,7 +172,7 @@ function [x0, z0] = gen_initial_state(drone_params)
     dP0 = [0 0 0]';
     x0 = [W0; R0; dP0; P0];
 
-    z0 = reshape(ones([1 length(drone_params.psi)]) .* [0 0 0 0 1 1]', [6*length(drone_params.psi) 1]);
+    z0 = reshape(ones([1 length(drone_params.psi)]) .* [0 0 0 0 100 100]', [6*length(drone_params.psi) 1]);
 end
 
 function [pos, psi] = single_model(GRID_SIZE)

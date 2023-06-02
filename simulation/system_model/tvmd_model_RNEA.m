@@ -1,4 +1,4 @@
-function [dxdt, dzdt, meta, u] = tvmd_model_RNEA(x, z, z_d, env_params, drone_params)
+function [dxdt, dzdt, meta, u] = tvmd_model_RNEA(x, z, z_d, u_d_bypass, env_params, drone_params, ctrl_params)
     % region [Parameters]
     g = env_params.g; % gravity
     rho = env_params.rho; % kg/m3
@@ -44,7 +44,7 @@ function [dxdt, dzdt, meta, u] = tvmd_model_RNEA(x, z, z_d, env_params, drone_pa
     pos = drone_params.pos;
     psi = drone_params.psi;
     n = length(psi);
-    meta = zeros([6 n]);
+    meta = zeros([6 4]);
     
     % State extraction
     W = x(1:3);
@@ -57,6 +57,17 @@ function [dxdt, dzdt, meta, u] = tvmd_model_RNEA(x, z, z_d, env_params, drone_pa
     eta_x = zeros([n 1]);
     eta_y = zeros([n 1]);
     C_Fi_A = zeros([6 n]);
+
+    if ctrl_params.ud_pypass
+        u = u_d_bypass;
+        ddP = [0;0;-g] + (I_R_B * u(1:3)) / mb;
+        dW = I_bb \ (sat(u(4:6), -[100;100;100], [100;100;100]) - cross(W, I_bb * W));
+        dQ = reshape(I_R_B * skew(W), [9 1]);
+        meta(1:3, 1:2) = [u(4:6) -cross(W, I_bb * W)];
+
+        dxdt = [dW; dQ; ddP; dP];
+        return;
+    end
 
     
     %% Actuator Model
@@ -156,46 +167,20 @@ function [dxdt, dzdt, meta, u] = tvmd_model_RNEA(x, z, z_d, env_params, drone_pa
         C_Fi_A(:, i) = Ad(Trans.A_T_C * Bi_T_C)' * A_Fi_A;
     end
     
+    
     u = full_dof_mixing(pos, psi, eta_x, eta_y, Tf);
     C_F_A = sum(C_Fi_A, 2);
     C_F_G= [zeros([3 1]); I_R_B' * [0;0;-mb*g]];
-    % dV_Cn = G.G_C \ ([u(4:6); u(1:3)] + C_F_G + ad(V_C)' * G.G_C * V_C);
     dV_Cn = G.G_C \ ([u(4:6); u(1:3)] + C_F_G - C_F_A + ad(V_C)' * G.G_C * V_C);
     
     % System Dynamics
     ddP = I_R_B * dV_Cn(4:6);
     dW = dV_Cn(1:3);
     dQ = reshape(I_R_B * skew(W), [9 1]);
-    meta = C_Fi_A;
+    meta = [[u(4:6); u(1:3)]  C_F_G  -C_F_A  ad(V_C)'* G.G_C*V_C];
 
     dxdt = [dW; dQ; ddP; dP];
 end
-
-function [A_z, B_z, C_z] = gen_actuator_model(mKp, mKd, pKp)
-A_z = [   0    1    0    0    0    0;
-       -mKp -mKd    0    0    0    0;
-          0    0    0    1    0    0;
-          0    0 -mKp -mKd    0    0;
-          0    0    0    0 -pKp    0;
-          0    0    0    0    0 -pKp];
-B_z = [   0    0    0    0;
-        mKp    0    0    0;
-          0    0    0    0;
-          0  mKp    0    0;
-          0    0  pKp    0;
-          0    0    0  pKp];
-C_z = [1 0 0 0 0 0;
-       0 0 1 0 0 0;
-       0 0 0 0 1 0;
-       0 0 0 0 0 1];
-end
-
-function vec = full_dof_mixing(P, psi, a, b, tf)
-    n = length(psi);
-    M = get_M(n, psi, P);
-    fi = get_f(a, b, tf);
-    vec = M * fi;
-end 
 
 function A_F_A = RNEA_single(Trans, V_C, dV_C, dA, ddA, G)
     A_T_C=Trans.A_T_C; 

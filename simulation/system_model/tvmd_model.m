@@ -134,29 +134,3 @@ function [dxdt, dzdt, meta, u] = tvmd_model(x, z, z_d, env_params, drone_params)
 
     dxdt = [dW; dQ; ddP; dP];
 end
-
-function [A_z, B_z, C_z] = gen_actuator_model(mKp, mKd, pKp)
-A_z = [   0    1    0    0    0    0;
-       -mKp -mKd    0    0    0    0;
-          0    0    0    1    0    0;
-          0    0 -mKp -mKd    0    0;
-          0    0    0    0 -pKp    0;
-          0    0    0    0    0 -pKp];
-B_z = [   0    0    0    0;
-        mKp    0    0    0;
-          0    0    0    0;
-          0  mKp    0    0;
-          0    0  pKp    0;
-          0    0    0  pKp];
-C_z = [1 0 0 0 0 0;
-       0 0 1 0 0 0;
-       0 0 0 0 1 0;
-       0 0 0 0 0 1];
-end
-
-function vec = full_dof_mixing(P, psi, a, b, tf)
-    n = length(psi);
-    M = get_M(n, psi, P);
-    fi = get_f(a, b, tf);
-    vec = M * fi;
-end 
