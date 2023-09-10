@@ -23,7 +23,7 @@ function [vec, eta_x, eta_y, Tf] = actuator_mixing(zo, drone_params, env_params)
     for i = 1:n
         % Actuator Model
         zi = zo(4 * (i - 1) + 1 : 4 * i);
-        TfTdi = P_prop * zi(3:4, 1).^2;
+        TfTdi = P_prop * (zi(3:4, 1).^2);
         Tf(i) = TfTdi(1);
         eta_x(i) = zi(1);
         eta_y(i) = zi(2);

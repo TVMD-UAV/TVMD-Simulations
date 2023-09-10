@@ -31,6 +31,6 @@ function plot_3d(t, r, P, CoP, traj, thrust, R, options)
     
     set(gcf, 'Renderer', 'painters')
     set(gca, 'DataAspectRatio', [1 1 1])
-    print(gcf, '-depsc', 'test.eps')
+    % print(gcf, '-depsc', 'test.eps')
     savefig_helper(options, '_3d');
 end

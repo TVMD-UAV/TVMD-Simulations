@@ -1,12 +1,14 @@
-function plot_team_3d(env_params, drone_params, num_slot, t, P, R, traj, zo, options, adjust_campos)
+function plot_team_3d(env_params, drone_params, fps, t, P, R, traj, zo, options, adjust_campos)
     camproj perspective
     n = length(drone_params.psi);
-    figure('Position', [10 10 800 800])
+    figure('Position', [10 10 600 600])
 
-    if t(end) * 1 < num_slot; num_slot = t(end) * 0.2; end
-    interval = floor(length(t) / num_slot);
-    fprintf("Ploting interval: %d\n", interval);
-    r = 1:interval:length(t);
+    r = uint32(interp1(t, 1:length(t), 0:1/fps:t(end)));
+    r(1) = 1;
+    % if t(end) * 1 < num_slot; num_slot = t(end) * 0.2; end
+    % interval = floor(length(t) / num_slot);
+    % fprintf("Ploting interval: %d\n", interval);
+    % r = 1:interval:length(t);
 
     % Data processing
     beta_allo = drone_params.beta_allo;
@@ -52,17 +54,23 @@ function plot_team_3d(env_params, drone_params, num_slot, t, P, R, traj, zo, opt
     tt = colorbar;
     ylabel(tt, 'Time (sec)', 'FontName', 'Times New Roman');
     
-    pp = tt.Position;
-    pp(4) = pp(4) * 0.8;
-    pp(1) = pp(1) + 0.05;
+    tt.Location = 'southoutside';
 
-    tt.Label.Position(1) = 0.5;
-    tt.Label.Position(2) = -2;
-    tt.Label.Rotation = 0;
-    set(tt, 'Position', pp);
+    % pp = tt.Position;
+    % pp(4) = pp(4) * 0.8;
+    % pp(1) = pp(1) + 0.05;
 
+    % tt.Label.Position(1) = 0.5;
+    % tt.Label.Position(2) = -2;
+    % tt.Label.Rotation = 0;
+    % set(tt, 'Position', pp);
+
+    options('savepdf') = true;
     set(gca, 'DataAspectRatio', [1 1 1])
+    
     set(gcf, 'Renderer', 'painters')
-    print(gcf, '-depsc', 'test.eps')
+    % set(gcf, 'PaperUnit', 'normalized')
+    set(gcf, 'PaperPosition', [0 0 20 20])
+    set(gcf, 'PaperSize', [20 20])
     savefig_helper(options, '_3d');
 end

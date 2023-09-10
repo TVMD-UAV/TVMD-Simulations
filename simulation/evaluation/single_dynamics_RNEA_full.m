@@ -1,3 +1,53 @@
+% syms A_R_B  [3 3] matrix
+% syms P_R_A  [3 3] matrix
+
+% syms B_W_B  [3 1] matrix
+% syms B_dW_B [3 1] matrix
+
+% syms A_W_AB [3 1] matrix
+% syms A_dW_AB [3 1] matrix
+
+% syms P_W_PA [3 1] matrix
+% syms P_dW_PA [3 1] matrix
+
+% syms J_P  [3 3] matrix
+% syms J_A  [3 3] matrix
+% syms J_B  [3 3] matrix
+
+% syms P_T_d  [3 1] matrix
+
+% A_R_B = eye([3 3]);
+% P_R_A = eye([3 3]);
+% J_P = eye([3 3]);
+% J_A = eye([3 3]);
+% J_B = eye([3 3]);
+% B_W_B = ones([3 1]);
+% B_dW_B = ones([3 1]);
+% A_W_AB = ones([3 1]);
+% A_dW_AB = ones([3 1]);
+% P_W_P1A = ones([3 1]);
+% P_dW_P1A = ones([3 1]);
+% P_W_P2A = ones([3 1]);
+% P_dW_P2A = ones([3 1]);
+% A_T_d = ones([3 1]);
+% A_T_f = ones([3 1]);
+
+% A_R_B = Rx(0.1) * Ry(0.2) * Rz(0.3);
+% P_R_A = Rx(0.2) * Ry(0.2) * Rz(0.3);
+% J_P = diag([1 2 3]);
+% J_A = diag([3 2 1]);
+% J_B = diag([1 2 2]);
+% B_W_B = ones([3 1]);
+% B_dW_B = ones([3 1]);
+% A_W_AB = ones([3 1]);
+% A_dW_AB = ones([3 1]);
+% P_W_P1A = ones([3 1]);
+% P_dW_P1A = ones([3 1]);
+% P_W_P2A = ones([3 1]);
+% P_dW_P2A = ones([3 1]);
+% A_T_d = ones([3 1]);
+% A_T_f = ones([3 1]);
+
 theta_P1 = 0;
 theta_P2 = 0;
 w_P1 = 1;
@@ -166,6 +216,8 @@ P_f_P1 = m_p * P_dV_P1 + skew(P_W_P1)*(m_p*P_V_P1);
 P_f_P2 = m_p * P_dV_P2 + skew(P_W_P2)*(m_p*P_V_P2);
 A_f_A = (A_R_P * P_f_P1 + A_R_P * P_f_P2) + m_a * A_dV_A + skew(A_W_A)*(m_a*A_V_A);
 A_F_A3 = [A_R_B * B_T_A; A_f_A]
+
+norm(A_F_A1 - A_F_A3)
 
 function AdT = Ad(T)
    AdT = [T(1:3, 1:3) zeros([3 3]);

@@ -12,7 +12,7 @@ function [patch_obj, quiver_obj, beam_obj] = plot_3kg_swarm(drone_params, P, R, 
     for i = 1:length(dP)
         thrust = R * Rz(psi(i)) * f0(:, i);
         [patch_obj(i), beam_obj(i)] = draw_agent_quad(PP(:, i)', R * Rz(psi(i)), ci);
-        quiver_obj(i) = quiver3(PP(1, i), PP(2, i), PP(3, i), thrust(1), thrust(2), thrust(3), 'magenta'); hold on
+        quiver_obj(i) = quiver3(PP(1, i), PP(2, i), PP(3, i), thrust(1), thrust(2), thrust(3), 'magenta', "LineWidth", 2); hold on
     end
 
 end

@@ -13,6 +13,10 @@ function traj = init_traj(t, traj_type, drone_type, traj_params)
             traj = zeros([6 3]);    
         end
     end
+    
+    if traj_params.sudden_change && (t > traj_params.sudden_time_start) && (t < traj_params.sudden_time_end)
+        traj(1:3, 1) = traj(1:3, 1) + traj_params.sudden_pos_offset;
+    end
 end
 
 function traj_func = traj_sine(drone_type, traj_params)

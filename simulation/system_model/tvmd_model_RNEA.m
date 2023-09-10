@@ -1,4 +1,4 @@
-function [dxdt, dzdt, meta, u] = tvmd_model_RNEA(x, z, z_d, u_d_bypass, env_params, drone_params, ctrl_params)
+function [dxdt, dzdt, meta, u] = tvmd_model_RNEA(t, x, z, z_d, u_d_bypass, env_params, drone_params, ctrl_params)
     % region [Parameters]
     g = env_params.g; % gravity
     rho = env_params.rho; % kg/m3
@@ -26,16 +26,32 @@ function [dxdt, dzdt, meta, u] = tvmd_model_RNEA(x, z, z_d, u_d_bypass, env_para
     r_f = drone_params.r_f;
     
     % Drone
-    m = drone_params.m;        % Single Body Mass
-    mb = drone_params.mb;      % Team Body Mass
-    m_p = drone_params.m_p;    % Single agent actuator mass, Kg
-    m_a = drone_params.m_a;    % Single agent actuator mass, Kg
-    m_fm = drone_params.m_fm;  % Single agent frame mass, Kg
-    I_b = drone_params.I_b;    % Single Body Inertia
-    I_bb = drone_params.I_bb;  % Team Body Inertia
-    I_a = drone_params.I_a;    % Actuator Inertia
-    I_P = drone_params.I_P;    % Actuator Inertia
-    I_fm = drone_params.I_fm;   % Frame Inertia
+
+    if drone_params.model_uncertain
+        m = drone_params.m_uncertain;        % Single Body Mass
+        mb = drone_params.mb_uncertain;      % Team Body Mass
+        m_p = drone_params.m_p_uncertain;    % Single agent actuator mass, Kg
+        m_a = drone_params.m_a_uncertain;    % Single agent actuator mass, Kg
+        m_fm = drone_params.m_fm_uncertain;  % Single agent frame mass, Kg
+
+        I_b = drone_params.I_b_uncertain;    % Single Body Inertia
+        I_bb = drone_params.I_bb_uncertain;  % Team Body Inertia
+        I_a = drone_params.I_a_uncertain;    % Actuator Inertia
+        I_P = drone_params.I_P_uncertain;    % Actuator Inertia
+        I_fm = drone_params.I_fm_uncertain;   % Frame Inertia
+    else
+        m = drone_params.m;        % Single Body Mass
+        mb = drone_params.mb;      % Team Body Mass
+        m_p = drone_params.m_p;    % Single agent actuator mass, Kg
+        m_a = drone_params.m_a;    % Single agent actuator mass, Kg
+        m_fm = drone_params.m_fm;  % Single agent frame mass, Kg
+
+        I_b = drone_params.I_b;    % Single Body Inertia
+        I_bb = drone_params.I_bb;  % Team Body Inertia
+        I_a = drone_params.I_a;    % Actuator Inertia
+        I_P = drone_params.I_P;    % Actuator Inertia
+        I_fm = drone_params.I_fm;   % Frame Inertia
+    end
     r_pg = drone_params.r_pg;  % Leverage length from c.p. to c.g.
     r_fm = drone_params.r_fm;  % Leverage length from c.fm. to c.g.
     l_pa = drone_params.l_pa;  % Distance between gimbal CoM and propeller
@@ -44,7 +60,7 @@ function [dxdt, dzdt, meta, u] = tvmd_model_RNEA(x, z, z_d, u_d_bypass, env_para
     pos = drone_params.pos;
     psi = drone_params.psi;
     n = length(psi);
-    meta = zeros([6 4]);
+    meta = zeros([6 5]);
     
     % State extraction
     W = x(1:3);
@@ -76,6 +92,12 @@ function [dxdt, dzdt, meta, u] = tvmd_model_RNEA(x, z, z_d, u_d_bypass, env_para
     beta_allo = drone_params.beta_allo;
     P_prop = rho * prop_d^4 * beta_allo;
 
+    % if ctrl_params.zd_pypass
+    %     z_d = z_d_bypass;
+    %     for i = 1:n
+    %         z(6*(i-1)+1 : 6*i) = C_z' * z_d_bypass(4*(i-1)+1 : 4*i);
+    %     end
+    % end
 
     % Parameters
     G.G_A = [I_a zeros([3 3]);
@@ -91,6 +113,16 @@ function [dxdt, dzdt, meta, u] = tvmd_model_RNEA(x, z, z_d, u_d_bypass, env_para
     G.G_C = [G_C zeros([3 3]);
             zeros([3 3]) n * m_fm * eye(3)];
 
+
+    % % Motor Failure
+    % N_esp = ones([n 1]);
+    % if drone_params.agent_disable
+    %     if any((t > drone_params.agent_disable_time(:, 1)) & (t <= drone_params.agent_disable_time(:, 2)))
+    %         for m=1:length(drone_params.agent_disable_id)
+    %             N_esp(drone_params.agent_disable_id(m)) = 0;
+    %         end
+    %     end
+    % end
 
     % Acceleration Estimation
     for i = 1:n
@@ -171,13 +203,32 @@ function [dxdt, dzdt, meta, u] = tvmd_model_RNEA(x, z, z_d, u_d_bypass, env_para
     u = full_dof_mixing(pos, psi, eta_x, eta_y, Tf);
     C_F_A = sum(C_Fi_A, 2);
     C_F_G= [zeros([3 1]); I_R_B' * [0;0;-mb*g]];
-    dV_Cn = G.G_C \ ([u(4:6); u(1:3)] + C_F_G - C_F_A + ad(V_C)' * G.G_C * V_C);
+
+    C_F_E = zeros([6 1]);
+    if env_params.ext_wind
+        C_F_E = aerial_drag(env_params, drone_params, u, I_R_B, dP);
+    end 
+
+    if env_params.ext_dist
+        C_f_L = -I_R_B' * env_params.ext_load_weight * env_params.g * [0;0;1];
+        C_M_L = cross(env_params.ext_load_pos, C_f_L);
+        C_F_E = C_F_E + [C_M_L; C_f_L] + env_params.ext_dist_wrench;
+        % todo: the induced motion due to the motion of the payload
+    end
+
+    C_F_T = [u(4:6); u(1:3)];
+    C_F_Delta = ad(V_C)' * G.G_C * V_C;
+    if ctrl_params.internal_moment_bypass
+        dV_Cn = G.G_C \ (C_F_T + C_F_G + C_F_Delta + C_F_E);
+    else
+        dV_Cn = G.G_C \ (C_F_T + C_F_G - C_F_A + C_F_Delta + C_F_E);
+    end
     
     % System Dynamics
     ddP = I_R_B * dV_Cn(4:6);
     dW = dV_Cn(1:3);
     dQ = reshape(I_R_B * skew(W), [9 1]);
-    meta = [[u(4:6); u(1:3)]  C_F_G  -C_F_A  ad(V_C)'* G.G_C*V_C];
+    meta = [C_F_T  C_F_G  (-C_F_A)  C_F_E  C_F_Delta];
 
     dxdt = [dW; dQ; ddP; dP];
 end
@@ -221,3 +272,20 @@ function adV = ad(V)
     adV = [skew(V(1:3)) zeros([3 3]);
            skew(V(4:6)) skew(V(1:3))];
 end 
+
+function C_F_E = aerial_drag(env_params, drone_params, u, R, v)
+    % Drone parameters
+    rho = env_params.rho;
+    v_w = env_params.ext_v_w;
+    C_d = drone_params.C_d;
+    I_xy = drone_params.I_xy;
+    A_cs = drone_params.A_cs;
+    esp_M = drone_params.esp_M;
+
+    %% Aerial Dynamics
+    F_drag = norm(v_w - v) * R * C_d * R' * (v_w - v);
+    F_ram = sqrt(u(3) * rho * A_cs / 2) * R * I_xy * R' * (v_w - v);
+    F_d = F_drag + F_ram;
+    M_d = esp_M * skew([0; 0; 1]) * R' * F_d;
+    C_F_E = [M_d; R' * F_d];
+end

@@ -33,9 +33,14 @@ function [tw, txn, txp] = solve_intersections(u_xyz, u_delta_xyz, a_s, b_s, f_ma
     tx(mask_a_small) = txl(mask_a_small);
 
     % x-axis
-    ty = -(u_xyz(1, :)' - u_xyz(3, :)' .* tan(b_s)) ./ (u_delta_xyz(1, :)' - u_delta_xyz(3, :)' .* tan(b_s));
-    mask_no_sol = (u_delta_xyz(1, :)' == (u_delta_xyz(3, :)' .* tan(b_s)));
-    ty(mask_no_sol) = inf;
+    if tan(b_s) > 1e10
+        % sigma_y = pi/2, tan -> inf
+        ty = - u_xyz(3, :)' ./ u_delta_xyz(3, :)';
+    else
+        ty = -(u_xyz(1, :)' - u_xyz(3, :)' .* tan(b_s)) ./ (u_delta_xyz(1, :)' - u_delta_xyz(3, :)' .* tan(b_s));
+        mask_no_sol = (u_delta_xyz(1, :)' == (u_delta_xyz(3, :)' .* tan(b_s)));
+        ty(mask_no_sol) = inf;
+    end
 
     % z-axis
 %     kkb = dot(u_xyz, u_delta_xyz, 1)' ./ v_norm.^2;
@@ -59,6 +64,10 @@ function [tw, txn, txp] = solve_intersections(u_xyz, u_delta_xyz, a_s, b_s, f_ma
 %     tz(tz < 0) = tzp(tz < 0);
 %     mask_no_sol = kkb .* kkb - kkc < 0;
 %     tz(mask_no_sol) = inf;
+
+    % disp(size(ty))
+    % disp(size(tx))
+    % disp(size(tz))
 
     tw = [ty tx tz];
 end

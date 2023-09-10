@@ -11,26 +11,37 @@
 % 9  [1x1 Signal]      z                     z                     SwarmSystem/Record
 % 10  [1x1 Signal]      z_d                   z_d                   SwarmSystem/Record
 
-Z_esp = out.recordout{1}.Values.Data;
-bounds = out.recordout{2}.Values.Data;
-increment = out.recordout{3}.Values.Data;
-intersections = out.recordout{4}.Values.Data;
-tw = out.recordout{5}.Values.Data;
-raw = out.recordout{6}.Values.Data;
-sat_order = out.recordout{7}.Values.Data;
-t = out.recordout{8}.Values.Data;
-z = out.recordout{9}.Values.Data;
-z_d = out.recordout{10}.Values.Data;
+ts = out.tout;
+t = get(out.logsout, 'time').Values.Data;
+z = get(out.xout, 'z').Values.Data;
+z = interp1(ts, z, t)';
 
-n = size(Z_esp, 1);
+Z_esp = get(out.recordout, 'Z_esp').Values.Data;
+bounds = get(out.recordout, 'bounds').Values.Data;
+increment = get(out.recordout, 'increment').Values.Data;
+tw = get(out.recordout, 'packed_tw').Values.Data;
+intersections = get(out.recordout, 'packed_intersections').Values.Data;
+raw = get(out.recordout, 'raw').Values.Data;
+sat_order = get(out.recordout, 'sat_order').Values.Data;
+
+z_d = squeeze(get(out.logsout, 'z_d').Values.Data);
+
+n = length(drone_params.psi);
 data_len = size(Z_esp, 3);
 
-inspect_time = 2.13;
+inspect_time = 10.01;
 [m, inspect_index] = min(abs(t - inspect_time));
 Z_esp(:, 1, inspect_index)
 
 plot_allocation_result_at_time(env_params, drone_params, n, inspect_index, bounds(:, :, inspect_index), ...
-    z(:, 1, inspect_index), z_d(:, 1, inspect_index), raw(:, :, inspect_index), tw(:, :, :, inspect_index), intersections(:, :, :, :, inspect_index), sat_order(:, 1, inspect_index))
+    z(:, inspect_index-1), z_d(:, inspect_index), raw(:, :, inspect_index), tw(:, :, :, inspect_index), intersections(:, :, :, :, inspect_index), sat_order(:, 1, inspect_index))
+
+% sat_order for rank(M_esp) output
+inspect_time = 10.05;
+[m, inspect_index] = min(abs(t - inspect_time));
+Z_esp(:, 1, inspect_index)
+plot_allocation_result_at_time(env_params, drone_params, n, inspect_index, bounds(:, :, inspect_index), ...
+    z(:, inspect_index-1), z_d(:, inspect_index), raw(:, :, inspect_index), tw(:, :, :, inspect_index), intersections(:, :, :, :, inspect_index), sat_order(inspect_index))
 
 function plot_allocation_result_at_time(env_params, drone_params, n, idx, bounds, zs, z_ds, raw, tw, intersections, sat_order)
     % region [params]
@@ -61,52 +72,53 @@ function plot_allocation_result_at_time(env_params, drone_params, n, idx, bounds
     set(gcf, 'Renderer', 'painters')
     cmap = turbo(n); 
 
-    for i = 7:7
-        % subplot(2, ceil(n / 2), i);
+    for i = 1:n
+        subplot(2, ceil(n / 2), i);
         bound = bounds(i, :);
         lower_x = bound(1);
         upper_x = bound(2); 
         lower_y = bound(3); 
         upper_y = bound(4);
 
-        % roof
-        funcx = @(a, b, r) r .* cos(a) .* sin(b);
-        funcy = @(a, b, r) - r .* sin(a);
-        funcz = @(a, b, r) r .* cos(a) .* cos(b);
+        % % roof
+        % funcx = @(a, b, r) r .* cos(a) .* sin(b);
+        % funcy = @(a, b, r) - r .* sin(a);
+        % funcz = @(a, b, r) r .* cos(a) .* cos(b);
 
-        funcx_r = @(a, b) funcx(a, b, f_max); 
-        funcy_r = @(a, b) funcy(a, b, f_max); 
-        funcz_r = @(a, b) funcz(a, b, f_max); 
-        fsurf(funcx_r, funcy_r, funcz_r, [lower_x upper_x lower_y upper_y], 'FaceColor', '#77AC30', 'FaceAlpha', 0.1, 'EdgeColor', 'none'); hold on 
+        % funcx_r = @(a, b) funcx(a, b, f_max); 
+        % funcy_r = @(a, b) funcy(a, b, f_max); 
+        % funcz_r = @(a, b) funcz(a, b, f_max); 
+        % fsurf(funcx_r, funcy_r, funcz_r, [lower_x upper_x lower_y upper_y], 'FaceColor', '#77AC30', 'FaceAlpha', 0.1, 'EdgeColor', 'none'); hold on 
 
-        % positive y
-        funcx_r = @(r, b) funcx(upper_x, b, r); 
-        funcy_r = @(r, b) funcy(upper_x, b, r); 
-        funcz_r = @(r, b) funcz(upper_x, b, r); 
-        fsurf(funcx_r, funcy_r, funcz_r, [0 f_max lower_y upper_y], 'FaceColor', "#4DBEEE", 'FaceAlpha', 0.2, 'EdgeColor', 'none'); hold on 
+        % % positive y
+        % funcx_r = @(r, b) funcx(upper_x, b, r); 
+        % funcy_r = @(r, b) funcy(upper_x, b, r); 
+        % funcz_r = @(r, b) funcz(upper_x, b, r); 
+        % fsurf(funcx_r, funcy_r, funcz_r, [0 f_max lower_y upper_y], 'FaceColor', "#4DBEEE", 'FaceAlpha', 0.2, 'EdgeColor', 'none'); hold on 
+        % % fsurf(funcx_r, funcy_r, funcz_r, [0 f_max 0 2*pi], 'FaceColor', "#4DBEEE", 'FaceAlpha', 0.1, 'EdgeColor', 'none'); hold on 
+
+        % funcx_r = @(r, b) funcx(-upper_x, b, r); 
+        % funcy_r = @(r, b) funcy(-upper_x, b, r); 
+        % funcz_r = @(r, b) funcz(-upper_x, b, r); 
+        % % fsurf(funcx_r, funcy_r, funcz_r, [0 f_max 0 2*pi], 'FaceColor', "#4DBEEE", 'FaceAlpha', 0.1, 'EdgeColor', 'none'); hold on 
+
+        % % negative y
+        % funcx_r = @(r, b) funcx(lower_x, b, r); 
+        % funcy_r = @(r, b) funcy(lower_x, b, r); 
+        % funcz_r = @(r, b) funcz(lower_x, b, r); 
+        % fsurf(funcx_r, funcy_r, funcz_r, [0 f_max lower_y upper_y], 'FaceColor', "#4DBEEE", 'FaceAlpha', 0.2, 'EdgeColor', 'none'); hold on 
+        % % fsurf(funcx_r, funcy_r, funcz_r, [0 f_max 0 2*pi], 'FaceColor', "#4DBEEE", 'FaceAlpha', 0.1, 'EdgeColor', 'none'); hold on 
+
+        % funcx_r = @(r, b) funcx(-lower_x, b, r); 
+        % funcy_r = @(r, b) funcy(-lower_x, b, r); 
+        % funcz_r = @(r, b) funcz(-lower_x, b, r); 
         % fsurf(funcx_r, funcy_r, funcz_r, [0 f_max 0 2*pi], 'FaceColor', "#4DBEEE", 'FaceAlpha', 0.1, 'EdgeColor', 'none'); hold on 
 
-        funcx_r = @(r, b) funcx(-upper_x, b, r); 
-        funcy_r = @(r, b) funcy(-upper_x, b, r); 
-        funcz_r = @(r, b) funcz(-upper_x, b, r); 
-        % fsurf(funcx_r, funcy_r, funcz_r, [0 f_max 0 2*pi], 'FaceColor', "#4DBEEE", 'FaceAlpha', 0.1, 'EdgeColor', 'none'); hold on 
-
-        % negative y
-        funcx_r = @(r, b) funcx(lower_x, b, r); 
-        funcy_r = @(r, b) funcy(lower_x, b, r); 
-        funcz_r = @(r, b) funcz(lower_x, b, r); 
-        fsurf(funcx_r, funcy_r, funcz_r, [0 f_max lower_y upper_y], 'FaceColor', "#4DBEEE", 'FaceAlpha', 0.2, 'EdgeColor', 'none'); hold on 
-        % fsurf(funcx_r, funcy_r, funcz_r, [0 f_max 0 2*pi], 'FaceColor', "#4DBEEE", 'FaceAlpha', 0.1, 'EdgeColor', 'none'); hold on 
-
-        funcx_r = @(r, b) funcx(-lower_x, b, r); 
-        funcy_r = @(r, b) funcy(-lower_x, b, r); 
-        funcz_r = @(r, b) funcz(-lower_x, b, r); 
-        % fsurf(funcx_r, funcy_r, funcz_r, [0 f_max 0 2*pi], 'FaceColor', "#4DBEEE", 'FaceAlpha', 0.1, 'EdgeColor', 'none'); hold on 
-
-        title(i);
-        xlabel('X');
-        ylabel('Y');
-        zlabel('Z');
+        plot_admissible_with_bounds(bound, f_max);
+        title(sprintf('Agent $%d$', i), 'interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', 14);
+        xlabel('$$\mathbf{b}_x$$', 'interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', 12);
+        ylabel('$$\mathbf{b}_y$$', 'interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', 12);
+        zlabel('$$\mathbf{b}_z$$', 'interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', 12);
         axis equal
 
         zi = zs(6*i-5:6*i, 1);
@@ -136,14 +148,14 @@ function plot_allocation_result_at_time(env_params, drone_params, n, idx, bounds
         fprintf("Agent %d\n", i)
         fprintf("f0: %d%d%d | fd: %d%d%d | raw f0: %3f, %3f, %3f \n", f0_feasibility, fd_feasibility, f0);
 
-        quiver3(0, 0, 0, u(1), u(2), u(3), 'Color', '#000000', 'LineWidth', 2, 'AutoScale', 'off'); hold on
-        quiver3(0, 0, 0, u_d(1), u_d(2), u_d(3), 'Color', '#0000AA', 'LineWidth', 2, 'AutoScale', 'off'); hold on
-        for j=2:n
-            if sum(raw(j, :)) == 0
+        quiver3(0, 0, 0, u(1), u(2), u(3), 'Color', '#000000', 'LineWidth', 1, 'LineStyle', '--', 'AutoScale', 'off'); hold on
+        quiver3(0, 0, 0, u_d(1), u_d(2), u_d(3), 'Color', '#0000AA', 'LineWidth', 2, 'LineStyle', '--', 'AutoScale', 'off'); hold on
+        for j=1:n
+            if sum(raw(j+1, :)) == 0
                 break;
             end
-            f0 = raw(j-1, 3*i-2 : 3*i)';
-            f = raw(j, 3*i-2 : 3*i)';
+            f0 = raw(j, 3*i-2 : 3*i)';
+            f = raw(j+1, 3*i-2 : 3*i)';
             ff = squeeze(intersections(j, i, 1, :));
             fn = squeeze(intersections(j, i, 2, :));
             fp = squeeze(intersections(j, i, 3, :));
@@ -151,22 +163,22 @@ function plot_allocation_result_at_time(env_params, drone_params, n, idx, bounds
             if norm(df) < 1e-10
                 % scatter3(f0(1), f0(2), f0(3), 'Color', '#AA0000', 'LineWidth', 2, 'Marker', '*'); hold on
             else 
-                quiver3(f0(1), f0(2), f0(3), df(1), df(2), df(3), 'Color', cmap(j, :), 'LineWidth', 1, 'AutoScale', 'off'); hold on
+                quiver3(f0(1), f0(2), f0(3), df(1), df(2), df(3), 'Color', cmap(j, :), 'LineWidth', 2, 'AutoScale', 'off'); hold on
                 % scatter3(ff(1), ff(2), ff(3), 'Color', cmap(j, :), 'LineWidth', 2, 'Marker', 'x'); hold on
                 plot3(ff(1), ff(2), ff(3), 'Color', cmap(j, :), 'LineWidth', 2, 'Marker', 'o'); hold on
                 plot3([f(1) ff(1)], [f(2) ff(2)], [f(3) ff(3)], 'Color', cmap(j, :), 'LineWidth', 1, 'LineStyle', '--'); hold on
 
-                plot3(fn(1), fn(2), fn(3), 'Color', cmap(j, :), 'LineWidth', 2, 'Marker', 'x'); hold on
-                plot3([f(1) fn(1)], [f(2) fn(2)], [f(3) fn(3)], 'Color', cmap(j, :), 'LineWidth', 1, 'LineStyle', ':'); hold on
-                plot3(fp(1), fp(2), fp(3), 'Color', cmap(j, :), 'LineWidth', 2, 'Marker', '+'); hold on
-                plot3([f(1) fp(1)], [f(2) fp(2)], [f(3) fp(3)], 'Color', cmap(j, :), 'LineWidth', 1, 'LineStyle', ':'); hold on
+                % plot3(fn(1), fn(2), fn(3), 'Color', cmap(j, :), 'LineWidth', 2, 'Marker', 'x'); hold on
+                % plot3([f(1) fn(1)], [f(2) fn(2)], [f(3) fn(3)], 'Color', cmap(j, :), 'LineWidth', 1, 'LineStyle', ':'); hold on
+                % plot3(fp(1), fp(2), fp(3), 'Color', cmap(j, :), 'LineWidth', 2, 'Marker', '+'); hold on
+                % plot3([f(1) fp(1)], [f(2) fp(2)], [f(3) fp(3)], 'Color', cmap(j, :), 'LineWidth', 1, 'LineStyle', ':'); hold on
                 
                 % for k=1:3
                 %     ff = f0 + tw(j, i, k) .* (f-f0);
                 %     scatter3(ff(1), ff(2), ff(3), 'Color', cmap(j, :));
                 % end
             end
-            [Tf_s, eta_xs, eta_ys] = inverse_input(n, raw(j, :)');
+            [Tf_s, eta_xs, eta_ys] = inverse_input(n, raw(j+1, :)');
             fs_feasibility = [(lower_x <= eta_xs(i)) & (eta_xs(i) <= upper_x) (lower_y <= eta_ys(i)) & (eta_ys(i) <= upper_y) (0 <= Tf_s(i)) & (Tf_s(i) <= f_max)];
             fprintf("%d%d%d|", fs_feasibility);
             % pause
@@ -178,6 +190,6 @@ function plot_allocation_result_at_time(env_params, drone_params, n, idx, bounds
         end
     end
     % end region [boundary visualization]
-
-    sat_order
+    % colorbar 
+    % sat_order
 end

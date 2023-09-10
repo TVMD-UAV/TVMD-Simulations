@@ -14,7 +14,7 @@ open_system('single_system_2021b1');
 model = 'single_system_2021b1';
 simIn = Simulink.SimulationInput(model);
 
-% [simIn, options, ctrl_params] = thrust_verification(simIn, ctrl_params);
+[simIn, options, ctrl_params] = thrust_verification(simIn, ctrl_params);
 % [simIn, options, ctrl_params] = torque_verification(simIn, ctrl_params);
 % [simIn, options, ctrl_params] = torque_x_verification(simIn, ctrl_params);
 % [simIn, options, ctrl_params] = torque_y_verification(simIn, ctrl_params);
@@ -23,7 +23,7 @@ simIn = Simulink.SimulationInput(model);
 % [simIn, options, ctrl_params, initial_state_x0] = regulation_tilted(simIn, ctrl_params);
 % [simIn, options, ctrl_params, initial_state_x0] = regulation_moving(simIn, ctrl_params);
 % [simIn, options, ctrl_params, traj_params, initial_state_x0, traj_type] = tracking_sine_forward(simIn, ctrl_params, traj_params);
-[simIn, options, ctrl_params, traj_params, initial_state_x0, traj_type] = tracking_sine_upward(simIn, ctrl_params, traj_params);
+% [simIn, options, ctrl_params, traj_params, initial_state_x0, traj_type] = tracking_sine_upward(simIn, ctrl_params, traj_params);
 
 out = sim(simIn);
 matfilename = strcat(options('foldername'), options('filename'))
@@ -34,7 +34,8 @@ function [simIn, options, ctrl_params] = thrust_verification(simIn, ctrl_params)
     sim_time = 0.1;
     simIn = setModelParameter(simIn,"StopTime", string(sim_time));
     ctrl_params.ext_ctrl = true;
-    ctrl_params.ext_u_f = 1;
+    ctrl_params.ext_u_f = 1.0;
+    % ctrl_params.ext_u_f = 9.818*0.67434;
     ctrl_params.ext_u_t = 0;
 
     projectpath = "C:\\Users\\NTU\\Documents\\Projects\\Multidrone\\outputs\\single_verification";
@@ -106,13 +107,17 @@ function [simIn, options, ctrl_params, initial_state_x0] = regulation_hover(simI
     ctrl_params.Kd = diag([1 0.5 1]) * 1.0;
     ctrl_params.Kr = diag([5 1 1]) * 3;
     ctrl_params.Ko = diag([5 1 1]) * 3;
+    % ctrl_params.Kp = diag([1 0.5 1]) * 0.2;
+    % ctrl_params.Kd = diag([1 0.5 1]) * 1.0;
+    % ctrl_params.Kr = diag([5 1 1]) * 1;
+    % ctrl_params.Ko = diag([5 1 1]) * 1;
 
     W0 = [0 0 0]';
     R0 = reshape(eye(3) * getI_R_B(0, 0, 0), [9 1]);
     P0 = [2 2 1]';
     dP0 = [0 0 0]';
     initial_state_x0 = [W0; R0; dP0; P0];
-    options = gen_project_options_subtask(projectpath, projectname, filename, sim_time, true);
+    options = gen_project_options_subtask(projectpath, projectname, filename, sim_time, false);
 end
 
 function [simIn, options, ctrl_params, initial_state_x0] = regulation_tilted(simIn, ctrl_params)
@@ -173,6 +178,8 @@ function [simIn, options, ctrl_params, traj_params, initial_state_x0, traj_type]
     ctrl_params.Kd = diag([1 0.5 1]) * 1.0;
     ctrl_params.Kr = diag([5 1 1]) * 3;
     ctrl_params.Ko = diag([5 1 1]) * 3;
+    % ctrl_params.Kr = diag([5 1 1]) * 1;
+    % ctrl_params.Ko = diag([5 1 1]) * 1;
     
     traj_params.amps = [1; 1; 1; 0; 0; 0];
     traj_params.freq = [0.5; 0; 0.5; 0; 0; 0];
@@ -192,8 +199,6 @@ function [simIn, options, ctrl_params, traj_params, initial_state_x0, traj_type]
     simIn = setModelParameter(simIn,"StopTime", string(sim_time));
 
     projectpath = "C:\\Users\\NTU\\Documents\\Projects\\Multidrone\\outputs\\single_tracking";
-    % projectname = "moving";
-    % projectname = "tilted";
     projectname = "sine_upward";
     filename = "sing_track_upward";
 
@@ -287,8 +292,15 @@ function plotter(drone_params, out, options)
     plot_wrench(t, u_d, u, options)
     plot_torque(t, meta, options)
 
-    plot_zstate_with_error(1, 0, sigma_w(1), t, z_d(3, :), ts, zo(:, 3), "$$\omega_{P1}$$", ["State", "(rad/s)"], ["Error", "(rad/s)"], options, true, [0 600], '_internal_prop1_error')
-    plot_zstate_with_error(1, 0, sigma_w(2), t, z_d(4, :), ts, zo(:, 4), "$$\omega_{P2}$$", ["State", "(rad/s)"], ["Error", "(rad/s)"], options, true, [400 600], '_internal_prop2_error')
+    % plot_constraints_profile_with_rates(1, -r_sigma_x, r_sigma_x, t, zeros([1 length(t)]), ts, z(:, 2), "$$\dot{\eta}_x$$", options, false, [0 0], '_internal_rate_eta_x')
+    % plot_constraints_profile_with_rates(1, -r_sigma_y, r_sigma_y, t, zeros([1 length(t)]), ts, z(:, 4), "$$\dot{\eta}_y$$", options, false, [400 0], '_internal_rate_eta_y')
+    % plot_constraints_profile_with_rates(1, -sigma_x, sigma_x, t, z_d(1, :), ts, zo(:, 1), "$$\eta_x$$", options, false, [0 300], '_internal_eta_x')
+    % plot_constraints_profile_with_rates(1, -sigma_y, sigma_y, t, z_d(2, :), ts, zo(:, 2), "$$\eta_y$$", options, false, [400 300], '_internal_eta_y')
+    % plot_constraints_profile_with_rates(1, 0, sigma_w(1), t, z_d(3, :), ts, zo(:, 3), "$$\omega_{P1}$$", options, true, [0 600], '_internal_prop1')
+    % plot_constraints_profile_with_rates(1, 0, sigma_w(2), t, z_d(4, :), ts, zo(:, 4), "$$\omega_{P2}$$", options, true, [400 600], '_internal_prop2')
+
+    plot_zstate_with_error(1, 0, sigma_w(1), t, z_d(3, :), ts, zo(:, 3), "$$\omega_{P1}$$", ["State", "(rad/s)"], ["Error", "(rad/s)"], options, false, [0 600], '_internal_prop1_error')
+    plot_zstate_with_error(1, 0, sigma_w(2), t, z_d(4, :), ts, zo(:, 4), "$$\omega_{P2}$$", ["State", "(rad/s)"], ["Error", "(rad/s)"], options, false, [400 600], '_internal_prop2_error')
     plot_zstate_with_rate(1, -sigma_x, sigma_x, -r_sigma_x, r_sigma_x, t, z_d(1, :), ts, zo(:, 1), z(:, 2), "$$\eta_x$$", ["Angles", "(rad)"], ["Angle Rates", "(rad/s)"], options, false, [0 300], '_internal_eta_x_with_rate')
     plot_zstate_with_rate(1, -sigma_y, sigma_y, -r_sigma_y, r_sigma_y, t, z_d(2, :), ts, zo(:, 2), z(:, 4), "$$\eta_y$$", ["Angles", "(rad)"], ["Angle Rates", "(rad/s)"], options, false, [400 300], '_internal_eta_y_with_rate')
 end 

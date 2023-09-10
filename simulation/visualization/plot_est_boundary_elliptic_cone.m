@@ -17,5 +17,5 @@ function plot_est_boundary_elliptic_cone(drone_params, R, p, scaling)
     funcx_r = @(t, z) R(1, 1) * funcx(t, z) + R(1, 2) * funcy(t, z) + R(1, 3) * funcz(t, z) + p(1);
     funcy_r = @(t, z) R(2, 1) * funcx(t, z) + R(2, 2) * funcy(t, z) + R(2, 3) * funcz(t, z) + p(2);
     funcz_r = @(t, z) R(3, 1) * funcx(t, z) + R(3, 2) * funcy(t, z) + R(3, 3) * funcz(t, z) + p(3);
-    fsurf(funcx_r, funcy_r, funcz_r, [0 2*pi 0.1 n*f_max], 'FaceColor', '#77AC30', 'FaceAlpha', 0.1, 'EdgeColor', 'none'); hold on 
+    fsurf(funcx_r, funcy_r, funcz_r, [0 2*pi 0.1 n*f_max], 'FaceColor', '#77AC30', 'FaceAlpha', 0.2, 'EdgeColor', 'none','HandleVisibility','off'); hold on 
 end

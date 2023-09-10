@@ -30,6 +30,7 @@ function plot_attitude_on_unit_sphere(t, R_d, R, num_idx, options)
     grid on;
     title('$$\mathbf{R}_d$$', 'interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', title_font_size)
     set(gca, 'DataAspectRatio', [1 1 1])
+    view(90, 0);
 
     r = 1:floor(size(R, 1) / 1000):size(R, 1);
     idx_len = length(r);
@@ -55,7 +56,12 @@ function plot_attitude_on_unit_sphere(t, R_d, R, num_idx, options)
     sgtitle('Attitude on Unit Sphere', 'FontName', 'Times New Roman', 'FontSize', sgtitle_font_size)
 
     set(gca, 'DataAspectRatio', [1 1 1])
+    
+    view(90, 0);
     set(gcf, 'Renderer', 'painters')
-    print(gcf, '-depsc', 'test.eps')
+    % set(gcf, 'PaperUnit', 'normalized')
+    % set(gcf, 'PaperPosition', [0 0 1 1])
+    set(gcf, 'PaperPosition', [0 0 20 12])
+    set(gcf, 'PaperSize', [20 12])
     savefig_helper(options, '_attitude_unit_sphere');
 end

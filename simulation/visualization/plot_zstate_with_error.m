@@ -28,6 +28,7 @@ function plot_zstate_with_error(n, lower, upper, t, z_d, ts, z, name, label_stat
     % Error
     subplot(2, 1, 2);
     for i = 1:n
+        zs = interp1(ts, z(:, i), t);
         plot(t, z_d(i, :)-zs, 'LineStyle', '-', 'LineWidth', 2, 'Color', '#0072BD'); hold on
     end
 

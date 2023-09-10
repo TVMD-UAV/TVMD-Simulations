@@ -1,5 +1,4 @@
 function [F, a, b] = inverse_input(n, Fi)
-    %n = length(Fi') / 3;
     Fi = reshape(Fi, [3, n]);
     F = sqrt(sum(Fi.^2, 1))';
     a = asin(-Fi(2, :)' ./ F);

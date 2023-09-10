@@ -72,7 +72,7 @@ function [dxdt, dzdt, meta, T_f, wrench] = single_model_RNEA_simplified(x, z, z_
     dzdti = min(dz_upp, max(dz_low, dzdti));
     reaching_bound_x = ((zi(1) < -sigma_x) && (dzdti(1) < 0)) || ((zi(1) > sigma_x) && (dzdti(1) > 0));
     reaching_bound_y = ((zi(3) < -sigma_y) && (dzdti(3) < 0)) || ((zi(3) > sigma_y) && (dzdti(3) > 0));
-    reaching_bound_w = ((zi(5:6) <= 0) & (dzdti(5:6) <= 0)) | ((zi(5:6) >= sigma_w) & (dzdti(5:6) >= 0));
+    reaching_bound_w = ((zi(5:6) <= 0) & (dzdti(5:6) < 0)) | ((zi(5:6) >= sigma_w) & (dzdti(5:6) > 0));
     dzdti(1) = (~reaching_bound_x) * dzdti(1);
     dzdti(3) = (~reaching_bound_y) * dzdti(3);
     dzdti(5:6) = (~reaching_bound_w) .* dzdti(5:6);
@@ -172,11 +172,17 @@ function [dxdt, dzdt, meta, T_f, wrench] = single_model_RNEA_simplified(x, z, z_
     P_f_P1 = m_p * P_dV_P1 + skew(P_W_P1)*(m_p*P_V_P1);
     P_f_P2 = m_p * P_dV_P2 + skew(P_W_P2)*(m_p*P_V_P2);
     A_f_A = (A_R_P * P_f_P1 + A_R_P * P_f_P2) + m_a * A_dV_A + skew(A_W_A)*(m_a*A_V_A);
+    % B_f_A = B_R_A * A_f_A;
+    % fprintf("%.8f, %.8f, %.8f \n", B_f_A(1), B_f_A(2), B_f_A(3))
+    disp(A_dV_A)
 
     %% Dynamics
     % Translational
     I_thrust = I_R_B * thrust;
-    B_dv_B = (I_R_B' * [0; 0; -g] + thrust / m) - B_R_A * A_f_A - m * cross(W, dP);
+    % thrust = [0;0; m*g];
+    % B_dv_B = (I_R_B' * [0; 0; -g] + thrust / m);
+    % B_dv_B = (I_R_B' * [0; 0; -g] + thrust / m) - B_R_A * A_f_A - m * cross(W, dP);
+    B_dv_B = (I_R_B' * [0; 0; -g] + thrust / m) - B_R_A * A_f_A;
     ddP = I_R_B * B_dv_B;
     
     % Rotational

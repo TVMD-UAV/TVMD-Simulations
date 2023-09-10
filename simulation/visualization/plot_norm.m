@@ -9,8 +9,9 @@ function plot_norm(t, eX, eV, eR, eOmega, options)
     % Draw orientation
     figure('Position', [10 10 400 500])
     subplot(4, 1, 1);
-    plot(t, vecnorm(eR, 2, 1), 'DisplayName', '$$\Vert\mathbf{e}_\mathbf{R}\Vert_2$$', 'LineWidth', 2, 'LineStyle', '-', 'Color', '#0072BD'); hold on
-    labely = ylabel('$$\Vert\mathbf{e}_\mathbf{R}\Vert_2$$ (rad)', 'interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', label_font_size);
+    % plot(t, vecnorm(eR, 2, 1), 'DisplayName', '$$\Vert\mathbf{e}_\mathbf{R}\Vert_2$$', 'LineWidth', 2, 'LineStyle', '-', 'Color', '#0072BD'); hold on
+    plot(t, eR, 'DisplayName', '$$\Vert\mathbf{e}_\mathbf{R}\Vert_2$$', 'LineWidth', 2, 'LineStyle', '-', 'Color', '#0072BD'); hold on
+    labely = ylabel('$$\Psi$$', 'interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', label_font_size);
     labely.Position(1) = labely_pos;
     
     % Draw angular velocity
