@@ -124,7 +124,7 @@ function plot_state(t, ts, P, dP, x_r, W, W_d, eulZXY, attitude_d, options)
     v_r = squeeze(x_r(1:3, 2, :));
 
     % figure('Position', [410 10 400 600])
-    figure('Position', [410 10 600 400])
+    figure('Position', [410 10 400 500])
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %% Draw orientation
@@ -143,7 +143,7 @@ function plot_state(t, ts, P, dP, x_r, W, W_d, eulZXY, attitude_d, options)
     labely.Position(1) = labely_pos;
     
     legd1 = legend('show', 'Interpreter','latex', 'FontName', 'Times New Roman', 'FontSize', legend_font_size, ...
-        'NumColumns', 2, 'Orientation','vertical', 'Location', 'eastoutside');
+        'NumColumns', 1, 'Orientation','vertical', 'Location', 'eastoutside');
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
     %% Draw angular velocity
@@ -160,7 +160,7 @@ function plot_state(t, ts, P, dP, x_r, W, W_d, eulZXY, attitude_d, options)
     labely.Position(1) = labely_pos;
     % legend('show', 'Interpreter','latex', 'FontName', 'Times New Roman', 'FontSize', legend_font_size, 'NumColumns', 3, 'Orientation','horizontal', 'Location', 'best');
     legd2 = legend('show', 'Interpreter','latex', 'FontName', 'Times New Roman', 'FontSize', legend_font_size, ...
-        'NumColumns', 2, 'Orientation','vertical', 'Location', 'eastoutside');
+        'NumColumns', 1, 'Orientation','vertical', 'Location', 'eastoutside');
     
 
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -179,7 +179,7 @@ function plot_state(t, ts, P, dP, x_r, W, W_d, eulZXY, attitude_d, options)
     labely.Position(1) = labely_pos;
     % legend('show', 'Interpreter','latex', 'FontName', 'Times New Roman', 'FontSize', legend_font_size, 'NumColumns', 3, 'Orientation','horizontal', 'Location', 'best');
     legd3 = legend('show', 'Interpreter','latex', 'FontName', 'Times New Roman', 'FontSize', legend_font_size, ...
-        'NumColumns', 2, 'Orientation','vertical', 'Location', 'eastoutside');
+        'NumColumns', 1, 'Orientation','vertical', 'Location', 'eastoutside');
     
     
     %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
@@ -199,7 +199,7 @@ function plot_state(t, ts, P, dP, x_r, W, W_d, eulZXY, attitude_d, options)
     labely.Position(1) = labely_pos;
     % legend('show', 'Interpreter','latex', 'FontName', 'Times New Roman', 'FontSize', legend_font_size, 'NumColumns', 3, 'Orientation','horizontal', 'Location', 'best');
     legd4 = legend('show', 'Interpreter','latex', 'FontName', 'Times New Roman', 'FontSize', legend_font_size, ...
-        'NumColumns', 2, 'Orientation','vertical', 'Location', 'eastoutside');
+        'NumColumns', 1, 'Orientation','vertical', 'Location', 'eastoutside');
     
     xlabel('$$t$$ (sec)', 'interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', label_font_size)
     sgtitle('State Profile', 'FontName', 'Times New Roman', 'FontSize', sgtitle_font_size)

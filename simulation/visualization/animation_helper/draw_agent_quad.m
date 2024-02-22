@@ -23,7 +23,7 @@ function [p, b] = draw_agent_quad(P, R, ci)
     face = ones(4,1) * [0 4 5 1] + k';
     face(4, 3) = 5;
     face(4, 4) = 1;
-    p = patch('Vertices',vertices,'Faces',face, 'EdgeColor',c,'FaceColor','none','LineWidth',1); hold on
-    b = plot3(mid_beam(:, 1), mid_beam(:, 2), mid_beam(:, 3), 'black'); hold on
+    p = patch('Vertices',vertices,'Faces',face, 'EdgeColor',c,'FaceColor','none','LineWidth',1.5); hold on
+    b = plot3(mid_beam(:, 1), mid_beam(:, 2), mid_beam(:, 3), 'Color', '#888888', 'LineWidth', 1.5); hold on
     alpha(0.3);
 end

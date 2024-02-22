@@ -1,6 +1,6 @@
 function draw_agent_quad_animation(patch_obj, beam_obj, P, R, ci)
     R = squeeze(R);
-    radius = 0.5;
+    radius = 0.5 * sqrt(2) / 2;
     height = 0.2;
     k=1:8;
     kk = k*pi/2;

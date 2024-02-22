@@ -6,8 +6,8 @@ function patch_obj = draw_3kg_swarm_animation(drone_params, patch_obj, quiver_ob
     PP = R * dP + P';
 
     for i = 1:length(dP)
-        thrust = R * Rz(psi(i)) * f0(:, i) * 0.1;
-        draw_agent_quad_animation(patch_obj(i), beam_obj(i), PP(:, i)', R, ci);
+        thrust = R * Rz(psi(i)) * f0(:, i);
+        draw_agent_quad_animation(patch_obj(i), beam_obj(i), PP(:, i)', R * Rz(psi(i)), ci);
         quiver_obj(i).XData = PP(1, i);
         quiver_obj(i).YData = PP(2, i);
         quiver_obj(i).ZData = PP(3, i);

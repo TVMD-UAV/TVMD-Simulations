@@ -7,11 +7,11 @@ function plot_norm(t, eX, eV, eR, eOmega, options)
     labely_pos = options('labely_pos');
 
     % Draw orientation
-    figure('Position', [10 10 400 500])
+    figure('Position', [10 10 400 400])
     subplot(4, 1, 1);
     % plot(t, vecnorm(eR, 2, 1), 'DisplayName', '$$\Vert\mathbf{e}_\mathbf{R}\Vert_2$$', 'LineWidth', 2, 'LineStyle', '-', 'Color', '#0072BD'); hold on
     plot(t, eR, 'DisplayName', '$$\Vert\mathbf{e}_\mathbf{R}\Vert_2$$', 'LineWidth', 2, 'LineStyle', '-', 'Color', '#0072BD'); hold on
-    labely = ylabel('$$\Psi$$', 'interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', label_font_size);
+    labely = ylabel('$$\Psi(\mathbf{R})$$', 'interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', label_font_size);
     labely.Position(1) = labely_pos;
     
     % Draw angular velocity
@@ -33,7 +33,7 @@ function plot_norm(t, eX, eV, eR, eOmega, options)
     labely.Position(1) = labely_pos;
     xlabel('$$t$$ (sec)', 'interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', label_font_size)
     
-    sgtitle('Error profile', 'FontName', 'Times New Roman', 'FontSize', sgtitle_font_size)
+    sgtitle('Error Profile', 'FontName', 'Times New Roman', 'FontSize', sgtitle_font_size)
 
     savefig_helper(options, '_norm');
 end

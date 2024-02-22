@@ -26,7 +26,7 @@ function plot_metrics(t, metrics, incre, options)
     legend_font_size = options('legend_font_size');
     labely_pos = options('labely_pos');
 
-    figure('Position', [410 10 400 600])
+    figure('Position', [410 10 400 400])
     % subplot(4, 1, 1);
     tile = tiledlayout(4,1);
     nexttile;

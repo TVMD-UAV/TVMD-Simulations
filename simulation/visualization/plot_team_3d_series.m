@@ -79,6 +79,8 @@ function plot_team_3d_series(env_params, drone_params, time_selected, ts, P, Rr,
         end
     end
 
+    % set(gca,'Color',[0, 0, 0])
+    % set(gcf,'Color',[0, 0, 0])
     set(gcf, 'Renderer', 'painters')
     if length(time_selected) > 1
         set(gcf, 'PaperPositionMode', 'auto')
