@@ -1,5 +1,5 @@
-% conf_name = "model_A4_inc";
-conf_name = "model_A8_inc";
+conf_name = "model_A4_inc";
+% conf_name = "model_A8_inc";
 
 run('initialization/init_params_team.m')   
 close all 
@@ -11,8 +11,9 @@ dt = t(2) - t(1);
 % [options, ctrl_params, u_d] = CA_seq_with_pesudo_boundary1(env_params, drone_params, ctrl_params, t);
 % [options, ctrl_params, u_d] = CA_seq_with_post_enhance1(env_params, drone_params, ctrl_params, t);
 
-[options, ctrl_params, u_d] = CA_seq_ebra(env_params, drone_params, ctrl_params, t);
+% [options, ctrl_params, u_d] = CA_seq_ebra(env_params, drone_params, ctrl_params, t);
 % [options, ctrl_params, u_d] = CA_seq_cgi(env_params, drone_params, ctrl_params, t);
+[options, ctrl_params, u_d] = CA_seq_cgi_A4_inc(env_params, drone_params, ctrl_params, t);
 % [options, ctrl_params, u_d] = CA_seq_sqp(env_params, drone_params, ctrl_params, t);
 
 n = length(drone_params.psi);
@@ -146,6 +147,16 @@ function [options, ctrl_params, u_d] = CA_seq_cgi(env_params, drone_params, ctrl
     u_d = get_ref_wrench2(env_params, drone_params, t);
 end
 
+
+function [options, ctrl_params, u_d] = CA_seq_cgi_A4_inc(env_params, drone_params, ctrl_params, t)
+    projectpath = "C:\\Users\\NTU\\Documents\\Projects\\Multidrone\\outputs\\CA_evaluation";
+    projectname = "CA_seq_cmd_4A_inc";
+    filename = "cgi_test";
+    ctrl_params.allocator_id = 2;
+    options = gen_project_options_subtask(projectpath, projectname, filename, t(end), true);
+    u_d = get_ref_wrench3(env_params, drone_params, t);
+end
+
 function [options, ctrl_params, u_d] = CA_seq_sqp(env_params, drone_params, ctrl_params, t)
     projectpath = "C:\\Users\\NTU\\Documents\\Projects\\Multidrone\\outputs\\CA_evaluation";
     projectname = "CA_seq_cmd_8A";
@@ -172,6 +183,18 @@ function u = get_ref_wrench2(env_params, drone_params, t)
     n = length(drone_params.psi);
     f_amp = 2*m*g;
     m_amp = 1*m*g;
+    k = 3;
+    l = 0.2;
+    u = [2*m*g + f_amp * sin(l * t.^k); f_amp * sin(l * t.^k + pi / 3); 0 * sin(l * t.^k + 2 * pi / 3) + n*m*g;
+        m_amp * sin(l * t.^k); m_amp * sin(l * t.^k + pi / 3); m_amp * sin(l * t.^k + 2 * pi / 3)];
+end
+
+function u = get_ref_wrench3(env_params, drone_params, t)
+    g = env_params.g;
+    m = drone_params.m;
+    n = length(drone_params.psi);
+    f_amp = 0.2*m*g;
+    m_amp = 0.1*m*g;
     k = 3;
     l = 0.2;
     u = [2*m*g + f_amp * sin(l * t.^k); f_amp * sin(l * t.^k + pi / 3); 0 * sin(l * t.^k + 2 * pi / 3) + n*m*g;

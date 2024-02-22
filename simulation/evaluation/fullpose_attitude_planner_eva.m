@@ -15,10 +15,11 @@ r_xy = 0.5;
 t = linspace(-pi, pi, 100);
 % t = linspace(0.4, 1.2, 10);
 
-f_r = [0*t; sin(t); cos(t)];
+% f_r = [0*t; sin(t); cos(t)];
+f_r = [sin(t); 0*t; cos(t)];
 theta_bis = zeros([length(t) 1]);
 for i=1:length(t)
-    theta_bis(i) = ctrl_sat_square_bisection(drone_params, 20, b1r, b3r, f_r(:,i));
+    theta_bis(i) = ctrl_sat_square_bisection(drone_params, 20, b1r, b3r, f_r(:,i), 0);
     % pause
 end
 figure('Position', [10 210 400 350])
@@ -30,6 +31,7 @@ xlabel('$t$', 'interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize',
 ylabel('$\theta$', 'interpreter', 'latex', 'FontName', 'Times New Roman', 'FontSize', 12)
 
 
+R = zeros([3 3 length(t)]);
 figure('Position', [510 210 400 350])
 cmap = jet(length(t)); 
 % subplot(1, 2, 1)
@@ -37,11 +39,25 @@ for i=1:length(t)
     quiver(0, 0, f_r(2, i), f_r(3, i), 'Color', cmap(i, :)); hold on 
     k = cross(b3r, f_r(:, i)) / norm(cross(b3r, f_r(:, i)));
     b3 = rot_vec_by_theta(b3r, k, theta_bis(i));
+    b2 = cross(b3, b1r) / norm(cross(b3, b1r));
+    b1 = cross(b2, b3);
     quiver(0, 0, b3(2), b3(3), 'Color', cmap(i, :), 'LineStyle', '--', 'LineWidth', 2); hold on 
+
+    R(:, :, i) = [b1 b2 b3];
 end
+
+% generate answers for PX4 testing in pfa_att_planner_test.cpp
+% print_px4_attitude_test_data("expected_replanned", t, R, 20)
+num_test = 20;
+fprintf("const int num_test = %d;\n", num_test);
+print_px4_attitude_test_data("theta_ans", t, theta_bis, num_test)
+print_px4_attitude_test_data("f_r_ans", t, f_r, num_test)
+print_px4_attitude_test_data("R_ans", t, R, num_test)
+
 title("Bisection Results", 'FontName', 'Times New Roman', 'FontSize', 18)
 xlabel('y', 'FontName', 'Times New Roman', 'FontSize', 12)
 ylabel('z', 'FontName', 'Times New Roman', 'FontSize', 12)
+axis equal
 
 % b1r = [1; 0; 0];
 % b3r = [0; 0; 1];
@@ -49,7 +65,7 @@ ylabel('z', 'FontName', 'Times New Roman', 'FontSize', 12)
 f_r = [10; -20; -20];
 % f_r = [0; 0; -4];
 
-[theta] = ctrl_sat_square_bisection(drone_params, 20, b1r, b3r, f_r);
+[theta] = ctrl_sat_square_bisection(drone_params, 20, b1r, b3r, f_r, 0);
 
 k = cross(b3r, f_r) / norm(cross(b3r, f_r));
 nb3 = rot_vec_by_theta(b3r, k, theta);
@@ -87,3 +103,40 @@ return
 % xlabel('x')
 % ylabel('y')
 % zlabel('z')
+
+function print_px4_attitude_test_data(var_name, t, data, num_samples)
+    depth = length(size(data));
+    if size(data, 1) == 1 || size(data, 2) == 1
+        depth = depth - 1;
+    end
+    interval = floor(length(t) / num_samples);
+    type_prefix = "const float";
+
+    fprintf("%s %s", type_prefix, var_name);
+    if depth == 1
+        fprintf("[num_test]");
+    elseif depth == 2
+        fprintf("[num_test][%d]", size(data, 1));
+    elseif depth == 3
+        fprintf("[num_test][%d][%d]", size(data, 1), size(data, 2));
+    end
+
+    fprintf(" = {");
+    for i=1:interval:length(t)
+        if depth == 1
+            fprintf("%f", data(i))
+        elseif depth == 2
+            fprintf("{%f, %f, %f}", data(1, i), data(2, i), data(3, i))
+        elseif depth == 3
+            fprintf("{{%f, %f, %f}, {%f, %f, %f}, {%f, %f, %f}}", ...
+                data(1, 1, i), data(2, 1, i), data(3, 1, i), ...
+                data(1, 2, i), data(2, 2, i), data(3, 2, i), ...
+                data(1, 3, i), data(2, 3, i), data(3, 3, i)) 
+        end
+
+        if i + interval < length(t)
+            fprintf(", ");
+        end
+    end
+    fprintf("}\n\n");
+end
