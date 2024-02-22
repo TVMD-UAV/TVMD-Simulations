@@ -1,4 +1,4 @@
-function [u_d, R_d, attitude_d, eX, eRv, eOmega, theta, nb3, u_f, b_u_f] = full_pose_controller(t, x_r, R_r, x, env_params, drone_params, ctrl_params)
+function [u_d, R_d, R, attitude_d, eX, eRv, eOmega, theta, nb3, u_f, b_u_f] = full_pose_controller(t, x_r, R_r, x, env_params, drone_params, ctrl_params)
     m = drone_params.mb; % Mass, Kg
     g = env_params.g;
     I_b = drone_params.I_bb; % Leverage length from c.p. to c.g.

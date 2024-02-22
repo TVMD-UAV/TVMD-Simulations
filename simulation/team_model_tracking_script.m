@@ -11,7 +11,9 @@ addpath('visualization/viz_helper')
 open_system('SwarmSystem_2021b');
 
 
-% close all
+close all
+% region [Single Simulation]
+% To simulation a single case, please uncomment the following lines and run the script
 % run('initialization/init_params_team.m')    
 % model = 'SwarmSystem_2021b';
 % simIn = Simulink.SimulationInput(model);
@@ -27,13 +29,24 @@ open_system('SwarmSystem_2021b');
 % save(matfilename, 'drone_params', 'env_params', 'ctrl_params', 'out', 'dt', 'initial_state_x0', 'initial_state_z0');
 % plotter(env_params, drone_params, out, options);
 % return
+% end region [Single Simulation]
+
+
+% region [Visualization from Data]
+% To visualize the data from a batch of simulations, please uncomment the following lines and run the script
+% load("C:\Users\NTU\Documents\Projects\Multidrone\outputs\team_tracking\motor_failure\erpi_init1_sine_forward_gain1_mot_fail.mat")
+% projectpath = "C:\\Users\\NTU\\Documents\\Projects\\Multidrone\\outputs\\test";
+% projectname = "ideal";
+% filename = "ideal";
+% options = gen_project_options_subtask(projectpath, projectname, filename, 30, false);
+% plotter(env_params, drone_params, out, options);
+% return
+% end region [Visualization from Data]
 
 % Control Evaluations
 num_test = 10;
 num_cases = 1;
-
 for k = 0:num_cases * num_test-1
-% for k = 58:58
     i = uint8(floor(k / num_cases) + 1);
     j = uint8(mod(k, num_cases) + 1);
 
@@ -54,8 +67,11 @@ for k = 0:num_cases * num_test-1
 
     if i == 1
         % [simIn, options, drone_params]             = tracking_mot_failure(simIn, drone_params);
+        % [simIn, options, drone_params]             = regulation_ideal_icra(simIn, drone_params);
+        % [simIn, options, drone_params]             = tracking_ideal_icra(simIn, drone_params);
+        [simIn, options, drone_params]             = tracking_ideal_test(simIn, drone_params);
         % [simIn, options, drone_params]             = tracking_mot_failure_icra(simIn, drone_params);
-        [simIn, options, env_params, drone_params] = tracking_ext_dist_icra(simIn, env_params, drone_params);
+        % [simIn, options, env_params, drone_params] = tracking_ext_dist_icra(simIn, env_params, drone_params);
     elseif i == 2; [simIn, options, env_params, drone_params] = tracking_ext_wind(simIn, env_params, drone_params);
     elseif i == 3; [simIn, options, env_params]               = tracking_ext_dist(simIn, env_params);
     elseif i == 4; [simIn, options, env_params, drone_params] = tracking_model_uncertain(simIn, env_params, drone_params);
@@ -71,7 +87,7 @@ for k = 0:num_cases * num_test-1
     % [initial_state_x0, options] = initial_setting2(options);
     % [traj_type, traj_params, options] = traj_settings_sine_forward(traj_params, options);
     % [traj_type, traj_params, options] = traj_settings_sine_upward(traj_params, options);
-    [traj_type, traj_params, options] = traj_settings_sine_forward_smooth(traj_params, options);
+    % [traj_type, traj_params, options] = traj_settings_sine_forward_smooth(traj_params, options);
     % [initial_state_x0, options] = initial_setting1(options);
     % [initial_state_x0, options] = initial_setting2(options);
     [initial_state_x0, options] = initial_setting3(options);
@@ -230,8 +246,35 @@ function [simIn, options, drone_params] = tracking_mot_failure(simIn, drone_para
     options = gen_project_options_subtask(projectpath, projectname, filename, sim_time, true);
 end
 
+function [simIn, options, drone_params] = regulation_ideal_icra(simIn, drone_params)
+    sim_time = 20;
+    sim_time = 30;
+    simIn = setModelParameter(simIn,"StopTime", string(sim_time));
+
+    % projectpath = "C:\\Users\\NTU\\Documents\\Projects\\Multidrone\\outputs\\team_tracking";
+    projectpath = "C:\\Users\\NTU\\Documents\\Projects\\Multidrone\\outputs\\icra2024";
+    projectname = "regulation";
+    filename = "regulation";
+
+    options = gen_project_options_subtask(projectpath, projectname, filename, sim_time, true);
+end
+
+function [simIn, options, drone_params] = tracking_ideal_icra(simIn, drone_params)
+    sim_time = 20;
+    sim_time = 30;
+    simIn = setModelParameter(simIn,"StopTime", string(sim_time));
+
+    % projectpath = "C:\\Users\\NTU\\Documents\\Projects\\Multidrone\\outputs\\team_tracking";
+    projectpath = "C:\\Users\\NTU\\Documents\\Projects\\Multidrone\\outputs\\icra2024";
+    projectname = "ideal";
+    filename = "ideal";
+
+    options = gen_project_options_subtask(projectpath, projectname, filename, sim_time, true);
+end
+
 function [simIn, options, drone_params] = tracking_mot_failure_icra(simIn, drone_params)
     sim_time = 20;
+    sim_time = 30;
     simIn = setModelParameter(simIn,"StopTime", string(sim_time));
 
     % projectpath = "C:\\Users\\NTU\\Documents\\Projects\\Multidrone\\outputs\\team_tracking";
@@ -244,6 +287,19 @@ function [simIn, options, drone_params] = tracking_mot_failure_icra(simIn, drone
         [10 50; 100 100];
         % [10 50; 100 100];
     drone_params.agent_disable_id = [uint8(2)];
+
+    options = gen_project_options_subtask(projectpath, projectname, filename, sim_time, true);
+end
+
+function [simIn, options, drone_params] = tracking_ideal_test(simIn, drone_params)
+    sim_time = 20;
+    sim_time = 30;
+    simIn = setModelParameter(simIn,"StopTime", string(sim_time));
+
+    % projectpath = "C:\\Users\\NTU\\Documents\\Projects\\Multidrone\\outputs\\team_tracking";
+    projectpath = "C:\\Users\\NTU\\Documents\\Projects\\Multidrone\\outputs\\test";
+    projectname = "ideal";
+    filename = "ideal";
 
     options = gen_project_options_subtask(projectpath, projectname, filename, sim_time, true);
 end
@@ -516,6 +572,7 @@ function plotter(env_params, drone_params, out, options)
     % thrust = squeeze(get(out.logsout, 'thrust').Values.Data);
     increment = squeeze(get(out.recordout, 'increment').Values.Data);
     
+    bounds = get(out.recordout, 'bounds').Values.Data;
 
     % Control
     u_f = squeeze(get(out.logsout, 'u_f').Values.Data);
@@ -541,27 +598,38 @@ function plotter(env_params, drone_params, out, options)
 
     theta = squeeze(get(out.logsout, 'theta').Values.Data);
     nb3 = squeeze(get(out.logsout, 'nb3').Values.Data);
-
-    % plot_team_animation(env_params, drone_params, 20, t, interp1(ts, p, t), interp1(ts, R, t), x_r, interp1(ts, zo, t), options);
-    % % return
-    % plot_team_3d_series(env_params, drone_params, [0, 1, 2, 3, 4, 5, 6, 7], ts, p, R, zo, t, z_d, u_r_sat, [], [0 -90 0], options);
+    % %%%
+    plot_animation_admissible_space(env_params, drone_params, 20, t, interp1(ts, p, t), interp1(ts, zo, t), options);
+    plot_team_animation(env_params, drone_params, 20, t, interp1(ts, p, t), interp1(ts, R, t), x_r, interp1(ts, zo, t), bounds, options, [20 20 20]', '_side');
+    plot_team_animation(env_params, drone_params, 20, t, interp1(ts, p, t), interp1(ts, R, t), x_r, interp1(ts, zo, t), bounds, options, [20 0 0]', '_x');
+    plot_team_animation(env_params, drone_params, 20, t, interp1(ts, p, t), interp1(ts, R, t), x_r, interp1(ts, zo, t), bounds, options, [0 20 0]', '_y');
+    plot_team_animation(env_params, drone_params, 20, t, interp1(ts, p, t), interp1(ts, R, t), x_r, interp1(ts, zo, t), bounds, options, [0 0 20]', '_z');
+    plot_profile_animation(env_params, drone_params, 20, t, interp1(ts, p, t), interp1(ts, R, t), x_r, eX, eR, increment, metrices, options)
+    plot_internal_animation(env_params, drone_params, 20, t, interp1(ts, zo, t)', options)
+    % return
+    plot_team_3d_series(env_params, drone_params, [0, 1, 2, 3, 4, 5, 6, 7], ts, p, R, zo, t, z_d, u_r_sat, [], [0 -90 0], options);
     
-    % plot_team_3d_series(env_params, drone_params, [0, 1, 2, 9], ts, p, R, zo, t, z_d, u_r_sat, [], [0 -90 0], options);
-    plot_team_3d_series(env_params, drone_params, [0, .5, 1, 9], ts, p, R, zo, t, z_d, u_r_sat, [], [0 -90 0], options);
+    % % plot_team_3d_series(env_params, drone_params, [0, 1, 2, 9], ts, p, R, zo, t, z_d, u_r_sat, [], [0 -90 0], options);
+    % % plot_team_3d_series(env_params, drone_params, [0, .5, 1, 9], ts, p, R, zo, t, z_d, u_r_sat, [], [0 -90 0], options);
     % ori_filename = options('filename');
-    % % options('filename') = ori_filename + "_t0";
-    % % plot_team_3d_series(env_params, drone_params, [0], ts, p, R, zo, t, z_d, u_r_sat, u_r, [0 -90 0], options);
-    % options('filename') = ori_filename + "_t9_9";
-    % plot_team_3d_series(env_params, drone_params, [9.9], ts, p, R, zo, t, z_d, u_r_sat, u_r, [0 -90 0], options);
-    % options('filename') = ori_filename + "_t10_1";
-    % plot_team_3d_series(env_params, drone_params, [10.1], ts, p, R, zo, t, z_d, u_r_sat, u_r, [0 -90 0], options);
-    % options('filename') = ori_filename;
-    % plot_attitude_on_unit_sphere(t, R_d(:, :, :), R(:, :, :), 10, options)
-    % % return
-    % plot_team_3d(env_params, drone_params, 0.3, ts, p, R, x_r, zo, options, true);
-    % options('savepdf') = false;
+    % options('filename') = ori_filename + "_t0";
+    % plot_team_3d_series(env_params, drone_params, [0], ts, p, R, zo, t, z_d, u_r_sat, u_r, [0 -90 0], options);
+    % % options('filename') = ori_filename + "_t9_9";
+    % % plot_team_3d_series(env_params, drone_params, [9.9], ts, p, R, zo, t, z_d, u_r_sat, u_r, [0 -90 0], options);
+    % % options('filename') = ori_filename + "_t10_1";
+    % % plot_team_3d_series(env_params, drone_params, [10.1], ts, p, R, zo, t, z_d, u_r_sat, u_r, [0 -90 0], options);
+    % % options('filename') = ori_filename;
+    % % plot_attitude_on_unit_sphere(t, R_d(:, :, :), R(:, :, :), 10, options)
+    % % % return
+    % % plot_team_3d(env_params, drone_params, 0.3, ts, p, R, x_r, zo, options, true);
+    % % options('savepdf') = false;
+
+    % frame = getframe(gcf);
+    % im = frame2im(frame);
+    % [imind, cm] = rgb2ind(im, 256);
+    % imwrite(imind, cm, 'initial.png', 'png')
     
-    return
+    % return
 
     plot_norm(t, eX, eV, eR, eOmega, options);
     plot_state(t, ts, p, v, x_r, omega, omega_d, eulZXY, attitude_d, options);
@@ -579,7 +647,6 @@ function plotter(env_params, drone_params, out, options)
 
     % plot_constraints_profile_with_rates(1, -r_sigma_x, r_sigma_x, t, zeros([1 length(t)]), ts, z(:, 2), "$$\dot{\eta}_x$$", options, false, [0 0], '_internal_rate_eta_x')
     % plot_constraints_profile_with_rates(1, -r_sigma_y, r_sigma_y, t, zeros([1 length(t)]), ts, z(:, 4), "$$\dot{\eta}_y$$", options, false, [400 0], '_internal_rate_eta_y')
-    % figure('Position', [1410 10 400 300])
     figure('Position', [1410 10 500 250])
     plot_internal_state_profile(n, -sigma_x, sigma_x, t, C_x * z_d, C_x * z_os, "$$\eta_x$$", options, false, [0 300], [], '_internal_eta_x', 1)
     plot_internal_state_profile(n, -sigma_y, sigma_y, t, C_y * z_d, C_y * z_os, "$$\eta_y$$", options, false, [400 300], [], '_internal_eta_y', 2) % -0.1 0.1
@@ -591,35 +658,9 @@ function plotter(env_params, drone_params, out, options)
     % plot_zstate_with_rate(1, -sigma_x, sigma_x, -r_sigma_x, r_sigma_x, t, z_d(1, :), ts, zo(:, 1), z(:, 2), "$$\eta_x$$", ["Angles", "(rad)"], ["Angle Rates", "(rad/s)"], options, false, [0 300], '_internal_eta_x_with_rate')
     % plot_zstate_with_rate(1, -sigma_y, sigma_y, -r_sigma_y, r_sigma_y, t, z_d(2, :), ts, zo(:, 2), z(:, 4), "$$\eta_y$$", ["Angles", "(rad)"], ["Angle Rates", "(rad/s)"], options, false, [400 300], '_internal_eta_y_with_rate')
 
-    % ttt = 0.54
-    % [m, idx1] = min(abs(ts - ttt));
-    % [m, idx2] = min(abs(t - ttt));
-    
-    % R_r(:, :, idx2)
-    % f_r(:, idx2)
-    % plot_Rd_fr(R_r(:, :, idx2), R_d(:, :, idx2), R(idx1, :, :), u_f(:, idx2), theta(idx2), nb3(:, idx2), f_r(:, idx2), drone_params, env_params);
-    
-    
-    % ttt = 0.56
-    % [m, idx1] = min(abs(ts - ttt));
-    % [m, idx2] = min(abs(t - ttt));
-
-    % R_r(:, :, idx2)
-    % f_r(:, idx2)
-    % plot_Rd_fr(R_r(:, :, idx2), R_d(:, :, idx2), R(idx1, :, :), u_f(:, idx2), theta(idx2), nb3(:, idx2), f_r(:, idx2), drone_params, env_params);
-    
-    % ttt = 0.5
-    % ttt = 0
-    % [m, idx1] = min(abs(t - ttt));
-    % ttt = 1
-    % ttt = 2
-    % [m, idx2] = min(abs(t - ttt));
-    % idx1, idx2
-
-
     % Zoom in
-    t_start = 9.5;
-    t_end = 11;
+    t_start = 8;
+    t_end = 14;
     [m, idx_start] = min(abs(t - t_start));
     [m, idx_end] = min(abs(t - t_end));
     t = t(idx_start:idx_end);
