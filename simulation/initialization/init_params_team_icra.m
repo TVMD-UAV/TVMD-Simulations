@@ -163,6 +163,8 @@ function drone_params = gen_drone_params(env_params, conf_name)
         [pos, psi] = model_T10_inc(GRID_SIZE);
     elseif conf_name == "single_model"
         [pos, psi] = single_model(GRID_SIZE);
+    elseif conf_name == "model_A4_inc_1_nav"
+        [pos, psi] = model_A4_inc_1_nav(GRID_SIZE);
     end
 
     drone_params.pos = pos;
