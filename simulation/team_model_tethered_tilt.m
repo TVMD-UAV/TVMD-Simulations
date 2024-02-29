@@ -63,21 +63,21 @@ simIn = Simulink.SimulationInput(model);
 [ctrl_params, options] = gain_setting1(ctrl_params, options);
 [initial_state_x0, options] = initial_setting_stationary(options);
 [ctrl_params, options] = allocator_erpi(ctrl_params, options);
-[traj_type, traj_params, options] = traj_settings_hover_tilt(traj_params, options);
+[traj_type, traj_params, options] = traj_settings_hover_tilt_4(traj_params, options);
 
 matfilename = strcat(options('foldername'), options('filename'));
 % Simulation
-% try
+try
     fprintf("%s\n", matfilename)
-    % out = sim(simIn);
-    % save(matfilename, 'drone_params', 'env_params', 'ctrl_params', 'out', 'dt', 'initial_state_x0', 'initial_state_z0');
+    out = sim(simIn);
+    save(matfilename, 'drone_params', 'env_params', 'ctrl_params', 'out', 'dt', 'initial_state_x0', 'initial_state_z0');
     plotter(env_params, drone_params, ctrl_params, out, options);
-% catch
-%     fprintf("Failed to run sim %d\n", k)
-%     if isfile(strcat(matfilename, ".mat"))
-%         delete(strcat(matfilename, ".mat"))
-%     end
-% end
+catch
+    fprintf("Failed to run sim %d\n", k)
+    if isfile(strcat(matfilename, ".mat"))
+        delete(strcat(matfilename, ".mat"))
+    end
+end
 
 
 % Load batched results
@@ -108,9 +108,28 @@ end
 % endregion [trajectory setting]
 
 % region [trajectory setting]
-function [traj_type, traj_params, options] = traj_settings_hover_tilt(traj_params, options)
+function [traj_type, traj_params, options] = traj_settings_hover_tilt_16(traj_params, options)
     traj_type = "hover_tilt";
-    options('filename') = "sine_forward_" + options('filename');
+    options('filename') = "tilt_16_" + options('filename');
+    traj_params.h_tilt = pi / 16;
+end
+
+function [traj_type, traj_params, options] = traj_settings_hover_tilt_8(traj_params, options)
+    traj_type = "hover_tilt";
+    options('filename') = "tilt_8_" + options('filename');
+    traj_params.h_tilt = pi / 8;
+end
+
+function [traj_type, traj_params, options] = traj_settings_hover_tilt_6(traj_params, options)
+    traj_type = "hover_tilt";
+    options('filename') = "tilt_6_" + options('filename');
+    traj_params.h_tilt = pi / 6;
+end
+
+function [traj_type, traj_params, options] = traj_settings_hover_tilt_4(traj_params, options)
+    traj_type = "hover_tilt";
+    options('filename') = "tilt_4_" + options('filename');
+    traj_params.h_tilt = pi / 4;
 end
 % endregion [trajectory setting]
 
@@ -137,7 +156,7 @@ function [simIn, options] = tracking_normal(simIn)
     sim_time = 14;
     simIn = setModelParameter(simIn,"StopTime", string(sim_time));
 
-    projectpath = "C:\\Users\\NTU\\Documents\\Projects\\Multidrone\\outputs\\hover_tilt";
+    projectpath = "C:\\Users\\NTU\\Documents\\Projects\\Multidrone\\outputs\\hover_tilt_aggres";
     projectname = "normal";
     filename = "normal";
 
@@ -304,15 +323,21 @@ function plotter(env_params, drone_params, ctrl_params, out, options)
     C_y = kron(eye(n), [0 1 0 0]);
 
     %%%
-    % plot_animation_admissible_space(env_params, drone_params, 20, t, interp1(ts, p, t), interp1(ts, zo, t), options);
-    % plot_team_animation(env_params, drone_params, 20, t, interp1(ts, p, t), interp1(ts, R, t), x_r, interp1(ts, zo, t), bounds, options, [20 20 20]', '_side');
-    % plot_team_animation(env_params, drone_params, 20, t, interp1(ts, p, t), interp1(ts, R, t), x_r, interp1(ts, zo, t), bounds, options, [20 0 0]', '_x');
-    % plot_team_animation(env_params, drone_params, 20, t, interp1(ts, p, t), interp1(ts, R, t), x_r, interp1(ts, zo, t), bounds, options, [0 20 0]', '_y');
-    % plot_team_animation(env_params, drone_params, 20, t, interp1(ts, p, t), interp1(ts, R, t), x_r, interp1(ts, zo, t), bounds, options, [0 0 20]', '_z');
-    % plot_profile_animation(env_params, drone_params, 20, t, interp1(ts, p, t), interp1(ts, R, t), x_r, eX, eR, increment, metrices, options)
-    % plot_internal_animation(env_params, drone_params, 20, t, interp1(ts, zo, t)', options)
+    plot_animation_admissible_space(env_params, drone_params, 20, t, interp1(ts, p, t), interp1(ts, zo, t), options);
+    plot_team_animation(env_params, drone_params, 20, t, interp1(ts, p, t), interp1(ts, R, t), x_r, interp1(ts, zo, t), bounds, options, [20 20 20]', '_side');
+    plot_team_animation(env_params, drone_params, 20, t, interp1(ts, p, t), interp1(ts, R, t), x_r, interp1(ts, zo, t), bounds, options, [20 0 0]', '_x');
+    plot_team_animation(env_params, drone_params, 20, t, interp1(ts, p, t), interp1(ts, R, t), x_r, interp1(ts, zo, t), bounds, options, [0 20 0]', '_y');
+    plot_team_animation(env_params, drone_params, 20, t, interp1(ts, p, t), interp1(ts, R, t), x_r, interp1(ts, zo, t), bounds, options, [0 0 20]', '_z');
+    plot_profile_animation(env_params, drone_params, 20, t, interp1(ts, p, t), interp1(ts, R, t), x_r, eX, eR, increment, metrices, options)
+    plot_internal_animation(env_params, drone_params, 20, t, interp1(ts, zo, t)', options)
     % % return
-    % plot_team_3d_series(env_params, drone_params, [0, 1, 2, 4, 6, 7, 8, 10, 12, 13, 14], ts, p, R, zo, t, z_d, u_r_sat, [], [90 0 0], options);
+
+    % Recover plot settings
+    set(groot,{'DefaultAxesXColor','DefaultAxesYColor','DefaultAxesZColor', 'defaultfigurecolor'}, ...
+        {[0.1500 0.1500 0.1500], [0.1500 0.1500 0.1500], [0.1500 0.1500 0.1500], [0.9400 0.9400 0.9400]})
+    set(gcf,'Color',[1, 1, 1])
+    set(gca,'Color',[1, 1, 1])
+    plot_team_3d_series(env_params, drone_params, [0, 1, 2, 4, 6, 7, 8, 10, 12, 13, 14], ts, p, R, zo, t, z_d, u_r_sat, [], [90 0 0], options);
     % % return
     % % ori_filename = options('filename');
     % % options('filename') = ori_filename + "_t0";
@@ -326,31 +351,27 @@ function plotter(env_params, drone_params, ctrl_params, out, options)
     % % im = frame2im(frame);
     % % [imind, cm] = rgb2ind(im, 256);
     % % imwrite(imind, cm, 'initial.png', 'png')
-    % set(gcf,'Color',[1, 1, 1])
-    % set(gca,'Color',[1, 1, 1])
-    % set(groot,{'DefaultAxesXColor','DefaultAxesYColor','DefaultAxesZColor', 'defaultfigurecolor'}, ...
-    %     {[0.1500 0.1500 0.1500], [0.1500 0.1500 0.1500], [0.1500 0.1500 0.1500], [0.9400 0.9400 0.9400]})
     
     % % return
 
     
-    % plot_lyapunov_candidates(t, ctrl_params.Kp*eX, ctrl_params.Kd*eV, eR_raw, ctrl_params.Ko*eOmega, options);
-    % plot_norm(t, eX, eV, eR, eOmega, options);
-    % plot_state(t, ts, p, v, x_r, omega, omega_d, eulZXY, attitude_d, options);
-    % plot_wrench(t, u, u_d, u_r, options)
-    % plot_torque(t, meta, options)
-    % plot_force(t, meta, options)
-    % plot_metrics(t, metrices, increment, options);
-    % % % return
+    plot_lyapunov_candidates(t, ctrl_params.Kp*eX, ctrl_params.Kd*eV, eR_raw, ctrl_params.Ko*eOmega, options);
+    plot_norm(t, eX, eV, eR, eOmega, options);
+    plot_state(t, ts, p, v, x_r, omega, omega_d, eulZXY, attitude_d, options);
+    plot_wrench(t, u, u_d, u_r, options)
+    plot_torque(t, meta, options)
+    plot_force(t, meta, options)
+    plot_metrics(t, metrices, increment, options);
+    % % return
 
     % % plot_constraints_profile_with_rates(1, -r_sigma_x, r_sigma_x, t, zeros([1 length(t)]), ts, z(:, 2), "$$\dot{\eta}_x$$", options, false, [0 0], '_internal_rate_eta_x')
     % % plot_constraints_profile_with_rates(1, -r_sigma_y, r_sigma_y, t, zeros([1 length(t)]), ts, z(:, 4), "$$\dot{\eta}_y$$", options, false, [400 0], '_internal_rate_eta_y')
     % % figure('Position', [1410 10 400 300])
-    % figure('Position', [1410 10 500 250])
-    % plot_internal_state_profile(n, -sigma_x, sigma_x, t, C_x * z_d, C_x * z_os, "$$\eta_x$$", options, false, [0 300], [], '_internal_eta_x', 1)
-    % plot_internal_state_profile(n, -sigma_y, sigma_y, t, C_y * z_d, C_y * z_os, "$$\eta_y$$", options, false, [400 300], [], '_internal_eta_y', 2) % -0.1 0.1
-    % plot_internal_state_profile(n, 0, sigma_w(1), t, C_p1 * z_d, C_p1 * z_os, "$$\omega_{P1}$$", options, true, [0 600], [], '_internal_prop1', 3)
-    % plot_internal_state_profile(n, 0, sigma_w(2), t, C_p2 * z_d, C_p2 * z_os, "$$\omega_{P2}$$", options, true, [400 600], [], '_internal_prop2', 4)
+    figure('Position', [1410 10 500 250])
+    plot_internal_state_profile(n, -sigma_x, sigma_x, t, C_x * z_d, C_x * z_os, "$$\eta_x$$", options, false, [0 300], [], '_internal_eta_x', 1)
+    plot_internal_state_profile(n, -sigma_y, sigma_y, t, C_y * z_d, C_y * z_os, "$$\eta_y$$", options, false, [400 300], [], '_internal_eta_y', 2) % -0.1 0.1
+    plot_internal_state_profile(n, 0, sigma_w(1), t, C_p1 * z_d, C_p1 * z_os, "$$\omega_{P1}$$", options, true, [0 600], [], '_internal_prop1', 3)
+    plot_internal_state_profile(n, 0, sigma_w(2), t, C_p2 * z_d, C_p2 * z_os, "$$\omega_{P2}$$", options, true, [400 600], [], '_internal_prop2', 4)
 
     % % plot_zstate_with_error(1, 0, sigma_w(1), t, z_d(3, :), ts, zo(:, 3), "$$\omega_{P1}$$", ["State", "(rad/s)"], ["Error", "(rad/s)"], options, true, [0 600], '_internal_prop1_error')
     % % plot_zstate_with_error(1, 0, sigma_w(2), t, z_d(4, :), ts, zo(:, 4), "$$\omega_{P2}$$", ["State", "(rad/s)"], ["Error", "(rad/s)"], options, true, [400 600], '_internal_prop2_error')
@@ -384,8 +405,8 @@ function plotter(env_params, drone_params, ctrl_params, out, options)
 
 
     % Zoom in
-    t_start = 0;
-    t_end = 0.1;
+    t_start = 5.5;
+    t_end = 6.5;
     [m, idx_start] = min(abs(t - t_start));
     [m, idx_end] = min(abs(t - t_end));
     t = t(idx_start:idx_end);

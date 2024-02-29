@@ -22,31 +22,34 @@ function traj = init_traj(t, traj_type, drone_type, traj_params)
 end
 
 function traj = traj_hover_tilt(t, drone_type, traj_params)
-    up_time = 2;
-    hover_time = 10;
-    land_time = 2;
-    shutdown_time = 2;
+    up_time = traj_params.up_time;
+    hover_time = traj_params.hover_time;
+    land_time = traj_params.land_time;
+    shutdown_time = traj_params.shutdown_time;
 
-    h = 1.5;
-    T = 2;
-    h_tilt = pi / 16;
-    T_tilt = 6;
+    h = traj_params.h;
+    T = traj_params.T;
+    h_tilt = traj_params.h_tilt;
+    T_tilt = traj_params.T_tilt;
 
     t1 = up_time;
     t2 = t1 + hover_time;
     t3 = t2 + land_time;
     t4 = t3 + shutdown_time;
 
+    % For the trajectory generation (derivation), please see `evaluation/ref_trajectory_calculation.m`
     if drone_type == "single"
         % Only team system is supported currently
         zeta = [0; 0; 0; 0];
     else
         x_zr = 0;
         v_zr = 0;
+        a_zr = 0;
         phi_r = 0;
         if t < t1  % Ascending
-            x_zr = (0.5 * h * (1 - cos(pi * (t - 0) / T)));
-            v_zr = 0.5 * h* pi / T * sin(pi * (t - 0) / T);
+            x_zr = 0.5 * h * (1 - cos(pi * (t - 0) / T));
+            v_zr = 0.5 * h * pi / T * sin(pi * (t - 0) / T);
+            a_zr = 0.5 * h * pi^2 / T^2 * cos(pi * (t - 0) / T);
         elseif t >= t1 && t < t2 % Hover
             x_zr = h;
 
@@ -58,6 +61,7 @@ function traj = traj_hover_tilt(t, drone_type, traj_params)
         elseif t >= t2 && t < t3 % Descending
             x_zr = h - (0.5 * h * (1 - cos(pi * (t - t2) / T)));
             v_zr = -0.5 * h* pi / T * sin(pi * (t - t2) / T);
+            a_zr = -0.5 * h * pi^2 / T^2 * cos(pi * (t - t2) / T);
         elseif t >= t3 && t < t4
             x_zr = (t - t3);
         elseif t >= t4
@@ -65,8 +69,8 @@ function traj = traj_hover_tilt(t, drone_type, traj_params)
         end
         zeta = [0; 0; x_zr; 0; phi_r; 0];   % x, y, z, z(psi), x(phi), y(pitch)
         d_zeta = [0; 0; v_zr; 0; 0; 0];
+        dd_zeta = [0; 0; a_zr; 0; 0; 0];
     end
-    dd_zeta = d_zeta * 0;
     %desire = [zeta d_zeta dd_zeta ddd_zeta];
     traj = [zeta d_zeta dd_zeta];
 end
