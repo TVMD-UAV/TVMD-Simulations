@@ -54,7 +54,7 @@ close all
 close all
 conf_name = "model_A4_inc_1_nav";
 % run('initialization/init_params_team.m')    
-run('initialization/init_params_team_icra.m')    
+run('initialization/init_params_team_iros.m')    
 model = 'SwarmSystem_2021b';
 simIn = Simulink.SimulationInput(model);
 
@@ -100,7 +100,7 @@ matfilename = strcat(options('foldername'), options('filename'));
 % region [gain setting]
 function [ctrl_params, options] = gain_setting1(ctrl_params, options)
     ctrl_params.Kp = diag([0.4 0.4 1]);
-    ctrl_params.Kd = diag([0.8 0.8 2]) * 10;
+    ctrl_params.Kd = diag([0.8 0.8 2]);
     ctrl_params.Kr = diag([12 12 1]);
     ctrl_params.Ko = diag([8 8 1.5]);
     options('filename') = "gain1_" + options('filename');

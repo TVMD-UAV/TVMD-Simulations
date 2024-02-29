@@ -1,4 +1,4 @@
-function [theta] = ctrl_sat_square_bisection(drone_params, n, b1r, b3r, f_r, t)
+function [theta] = ctrl_sat_square_bisection(drone_params, ctrl_params, n, b1r, b3r, f_r, t)
     %f_r = f_r / norm(f_r);
     %sigma_a = conf('sigma_a');
     b2r = cross(b3r, b1r);
@@ -8,14 +8,14 @@ function [theta] = ctrl_sat_square_bisection(drone_params, n, b1r, b3r, f_r, t)
     % abs(f_r' * b2r)
     % f_r' * b3r * tan(sigma_a)
     % if abs(f_r' * b2r) > f_r' * b3r * tan(sigma_a)
-    if ~is_attainable(drone_params, b1r, b2r, b3r, f_r, t)
+    if ~is_attainable(drone_params, ctrl_params, b1r, b2r, b3r, f_r, t)
         k = cross(b3r, f_r) / norm(cross(b3r, f_r));
         for i=1:n
             b3 = rot_vec_by_theta(b3r, k, theta);
             b2 = cross(b3, b1r) / norm(cross(b3, b1r));
             b1 = cross(b2, b3);
             % if abs(f_r' * b2) < f_r' * b3 * tan(sigma_a)
-            if is_attainable(drone_params, b1, b2, b3, f_r, t)
+            if is_attainable(drone_params, ctrl_params, b1, b2, b3, f_r, t)
                 theta = theta - 0.5 * theta_max / (2^i);
             else
                 theta = theta + 0.5 * theta_max / (2^i);
@@ -27,17 +27,18 @@ function [theta] = ctrl_sat_square_bisection(drone_params, n, b1r, b3r, f_r, t)
     end
 end
 
-function feasible = is_attainable(drone_params, b1, b2, b3, f_r, t)
-    feasible = elliptic_cone(drone_params, b1, b2, b3, f_r, t);
+function feasible = is_attainable(drone_params, ctrl_params, b1, b2, b3, f_r, t)
+    feasible = elliptic_cone(drone_params, ctrl_params, b1, b2, b3, f_r, t);
     % feasible = pie(conf, b1, b2, b3, f_r);
 end
 
-function feasible = elliptic_cone(drone_params, b1, b2, b3, f_r, t)
+function feasible = elliptic_cone(drone_params, ctrl_params, b1, b2, b3, f_r, t)
     n = length(drone_params.psi);
     psi = drone_params.psi;
     f_max = drone_params.f_max;
-    sigma_a = drone_params.sigma_a;
-    sigma_b = drone_params.sigma_b;
+    % Tunable range of relaxation
+    sigma_a = drone_params.sigma_a * ctrl_params.attitude_planner_relax_ratio;
+    sigma_b = drone_params.sigma_b * ctrl_params.attitude_planner_relax_ratio;
 
     n_x = sum(psi == 0);
     n_y = n - n_x;

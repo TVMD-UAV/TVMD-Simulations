@@ -31,9 +31,15 @@ function [u_d, R_d, R, attitude_d, eX, eRv, eOmega, theta, nb3, u_f, b_u_f] = fu
     if ctrl_params.attitude_planner_non_neg_constraint
         if u_f(3) < 0.1; u_f(3) = 0.1; end
     end
-    f_r_sat = force_magnitude_sat(drone_params, t, R * u_f);
+    % f_r_sat = force_magnitude_sat(drone_params, t, R * u_f);
 
-    [R_d, theta, nb3] = calc_R_d(drone_params, f_r_sat, R_r, t);
+    % [R_d, theta, nb3] = calc_R_d(drone_params, f_r_sat, R_r, t);
+
+    % Using nominal force
+    f_rp = m * x_r(1:3, 3) + m*[0; 0; g];
+    % fprintf("%.4f: %.4f, %.4f, %.4f\n", t, f_rp(1), f_rp(2), f_rp(3))
+    [R_d, theta, nb3] = calc_R_d(drone_params, ctrl_params, f_rp, R_r, t);
+    % fprintf("R_dz: %.4f: %.4f, %.4f, %.4f\n", t, R_d(1, 1), R_d(2, 1), R_d(3, 1))
 
     if ctrl_params.force_projection
         u_f = force_projection_mag_first(drone_params, t, u_f);
